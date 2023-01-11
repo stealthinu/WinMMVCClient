@@ -29,8 +29,9 @@
         private void InitializeComponent()
         {
             this.comboBoxInput = new System.Windows.Forms.ComboBox();
-            this.label1 = new System.Windows.Forms.Label();
             this.comboBoxOutput = new System.Windows.Forms.ComboBox();
+            this.label2 = new System.Windows.Forms.Label();
+            this.label3 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // comboBoxInput
@@ -41,13 +42,6 @@
             this.comboBoxInput.Size = new System.Drawing.Size(268, 28);
             this.comboBoxInput.TabIndex = 0;
             // 
-            // label1
-            // 
-            this.label1.Location = new System.Drawing.Point(0, 0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(100, 23);
-            this.label1.TabIndex = 2;
-            // 
             // comboBoxOutput
             // 
             this.comboBoxOutput.FormattingEnabled = true;
@@ -56,24 +50,45 @@
             this.comboBoxOutput.Size = new System.Drawing.Size(298, 28);
             this.comboBoxOutput.TabIndex = 1;
             // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(40, 12);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(50, 20);
+            this.label2.TabIndex = 3;
+            this.label2.Text = "label2";
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(458, 6);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(50, 20);
+            this.label3.TabIndex = 4;
+            this.label3.Text = "label3";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.label3);
+            this.Controls.Add(this.label2);
             this.Controls.Add(this.comboBoxOutput);
-            this.Controls.Add(this.label1);
             this.Controls.Add(this.comboBoxInput);
             this.Name = "MainForm";
             this.Text = "MMVC Client";
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
         #endregion
 
-        private Label label1;
         private ComboBox comboBoxInput;
         private ComboBox comboBoxOutput;
+        private Label label2;
+        private Label label3;
     }
 }
