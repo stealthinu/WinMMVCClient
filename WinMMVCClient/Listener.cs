@@ -22,8 +22,11 @@ using MathNet.Numerics.IntegralTransforms;
 using System.Configuration;
 using System.Windows.Forms.Design;
 using System.Buffers;
+using OxyPlot.Axes;
+using OxyPlot.Series;
+using OxyPlot;
 
-namespace WindowsMMVCClient
+namespace WinMMVCClient
 {
     /*
     public sealed class MMVCInput
@@ -115,7 +118,7 @@ namespace WindowsMMVCClient
 
         public OnnxConverter()
         {
-            var assetsRelativePath = @"..\..\..\..\assets";
+            var assetsRelativePath = @"..\..\..\..\..\assets";
             string assetsPath = GetAbsolutePath(assetsRelativePath);
             var modelFilePath = Path.Combine(assetsPath, "G_50000.onnx");
             var outputFolder = Path.Combine(assetsPath, "output");
@@ -130,40 +133,33 @@ namespace WindowsMMVCClient
             session = new InferenceSession(modelFilePath, opts);
         }
 
-        public float[] Infer(float[] wav)
+        public float[] Infer(float[] wavSegment)
         {
             // specsだから4096を128毎で257chのspec作らないといけなかった
             // 複素数データに変換
             int segmentSize = 4096;
             int hopSize = 128;
             int winSize = 512;
-            int paddingSize = winSize / hopSize / 2; // 2
-            int specNum = segmentSize / hopSize - paddingSize * 2 + 1; // 29
-            var window = Window.Hamming(winSize);
+            int paddingSize = winSize / hopSize / 2;
+            int truncationSize = winSize / hopSize / 2; // 2
+            int specNum = segmentSize / hopSize; // 32
+            float[] window = Array.ConvertAll(Window.Hann(winSize), d => (float)d);
 
-            float[] tempArray = ArrayPool<float>.Shared.Rent(winSize);
-            var temp = tempArray.AsSpan()[..winSize];
-            float[] windowedWav = ArrayPool<float>.Shared.Rent(winSize);  
-            for (int specN = paddingSize; specN < segmentSize / hopSize - paddingSize; specN++)
+            //Complex[] complexWav = ArrayPool<Complex>.Shared.Rent(winSize);
+            Complex[] complexWav = new Complex[winSize];
+            float[] specs = ArrayPool<float>.Shared.Rent(specNum - truncationSize * 2);
+            for (int n = 0; n < specNum - truncationSize * 2; n++) // 今回は窓に入らない部分はpaddingせず使わない
             {
-                for (int i = specN * hopSize; i < specN * hopSize + 1; i++)
+                var start = n * hopSize;
+                var end = start + winSize;
+                var wav = wavSegment.AsSpan()[start..end];
+                for (int i = 0; i < winSize; i++)
                 {
-                    wav.AsSpan(i, winSize).CopyTo(temp);
-                    /*
-                    var windowedWav = wav.Select((v, i) => v * (float)window[i]).ToList();
-                    Complex[] complexWav = windowedWav.Select(v => new Complex(v, 0.0)).ToArray();
-                    Fourier.Forward(complexWav, FourierOptions.Matlab);
-                    float[] specs = new float[specNum];
-                    */
+                    complexWav[i] = wav[i] * window[i];
                 }
+                Fourier.Forward(complexWav, FourierOptions.Matlab);
             }
-            ArrayPool<float>.Shared.Return(windowedWav);
-            //ArrayPool<float>.Shared.Return(temp);
 
-            //var windowedWav = wav.Select((v, i) => v * (float)window[i]).ToList();
-            Complex[] complexWav = windowedWav.Select(v => new Complex(v, 0.0)).ToArray();
-            Fourier.Forward(complexWav, FourierOptions.Matlab);
-            float[] specs = new float[specNum];
             /*
             for (int specIndex = 0; specIndex < specNum; specIndex++)
             {
@@ -178,7 +174,7 @@ namespace WindowsMMVCClient
             }
             */
 
-            //Debug.Assert(specs.Length != 257 * 4096);
+            /*
             if (specs.Length != 257 * segmentSize)
             {
                 Debug.WriteLine($"specs.Length: {specs.Length}");
@@ -207,6 +203,8 @@ namespace WindowsMMVCClient
             // 推論の実行
             var results = session.Run(namedOnnxValues);
             var floatArray = results.First().AsEnumerable<float>().ToArray();
+            */
+            float[] floatArray = new float[specNum];
 
             return floatArray;
         }
@@ -227,6 +225,7 @@ namespace WindowsMMVCClient
         private WasapiOut waveOut;
         private BufferedWaveProvider speakerWaveProvider;
         private OnnxConverter onnxConverter;
+        private PlotModel plot;
 
         public double AmplitudeFrac { get; private set; }
         public double TotalSamples { get; private set; }
@@ -238,10 +237,14 @@ namespace WindowsMMVCClient
         public int SegmentSize { get; private set; }
         public int bytesPerSample = 2;
         public int maxSample = 32768;
+        public PlotModel _plot;
+        public LineSeries _line;
 
-        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, int segmentSize=4096, int speakerLatency=100)
+        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, PlotModel plot, LineSeries line, int segmentSize=4096, int speakerLatency=100)
         {
             onnxConverter = new OnnxConverter();
+            _plot = plot;
+            _line = line;
 
             SegmentSize = segmentSize;
             SpeakerLatency = speakerLatency;
@@ -255,6 +258,16 @@ namespace WindowsMMVCClient
             bytesPerSample = waveFormat.BitsPerSample / 8;
             maxSample = (1 << (bytesPerSample * 8 - 1));
             waveIn.DataAvailable += OnNewAudioData;
+        }
+
+        public void ProcessSample(float[] sample)
+        {
+            _line.Points.Clear();
+            for (int i = 0; i < sample.Length; i++)
+            {
+                _line.Points.Add(new DataPoint((double)i, sample[i]));
+            }
+            _plot.InvalidatePlot(true);
         }
 
         public void Start()
@@ -290,6 +303,7 @@ namespace WindowsMMVCClient
                     wav[i] = (float)convertAudio[i];
                 }
                 var audio = onnxConverter.Infer(wav); // テスト
+                ProcessSample(wav);
                 var convertedBytes = FloatToBytesArray(audio);
                 speakerWaveProvider.AddSamples(convertedBytes, 0, convertedBytes.Length);
             }

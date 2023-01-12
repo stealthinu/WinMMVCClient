@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
+using OxyPlot.Axes;
+using OxyPlot.Series;
+using OxyPlot;
 using System.Diagnostics;
 
 namespace WinMMVCClient
@@ -14,8 +17,31 @@ namespace WinMMVCClient
         //private DirectSoundOut waveOut;
         private MMDeviceCollection inputs;
         private MMDeviceCollection outputs;
-        //private Converter listener;
+        private MMDevice inputDevice;
+        private MMDevice outputDevice;
+                private Converter listener;
         private readonly IConfiguration conf;
+
+        public PlotModel plotmodel = new PlotModel();
+        private LinearAxis _linearaxis1 = new LinearAxis
+        {
+            Position = AxisPosition.Bottom
+        };
+        private LinearAxis _linearaxis2 = new LinearAxis
+        {
+            Minimum = -1.0,
+            Maximum = 1.0,
+            Position = AxisPosition.Left
+        };
+        public LineSeries lineSeries = new LineSeries();
+
+        public void InitPlot()
+        {
+            plotmodel.Axes.Add(_linearaxis1);
+            plotmodel.Axes.Add(_linearaxis2);
+            plotmodel.Series.Add(lineSeries);
+            this.plotView1.Model = plotmodel;
+        }
 
         public MainForm()
         {
@@ -33,17 +59,55 @@ namespace WinMMVCClient
             inputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
             outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
             comboBoxInput.Items.Clear();
-            foreach (var input in inputs)
+            foreach (var device in inputs)
             {
-                comboBoxInput.Items.Add(input.DeviceFriendlyName);
+                comboBoxInput.Items.Add(device);
             }
             comboBoxInput.SelectedItem = inputName;
             comboBoxOutput.Items.Clear();
-            foreach (var output in outputs)
+            foreach (var device in outputs)
             {
-                comboBoxOutput.Items.Add(output.DeviceFriendlyName);
+                comboBoxOutput.Items.Add(device);
             }
             comboBoxOutput.SelectedItem = outputName;
+        }
+
+        private void start()
+        {
+            if (!(comboBoxInput.SelectedItem is MMDevice && comboBoxInput.SelectedItem is MMDevice)) return;
+            inputDevice = (MMDevice)comboBoxInput.SelectedItem;
+            outputDevice = (MMDevice)comboBoxOutput.SelectedItem;
+
+            WaveFormat waveFormat = new WaveFormat(24000, 1); // 24K mono
+
+            //waveIn = new WasapiCapture(mics[micDeviceNumber]);
+            //waveIn.WaveFormat = new WaveFormat(24000, 1); // 24K mono
+            //waveIn = new WaveIn();
+            //waveIn = new WaveInEvent();
+            //waveIn.DeviceNumber = micDeviceNumber;
+            //waveIn.NumberOfBuffers = 8192;
+
+            //waveOut = new WasapiOut(speakers[speakerDeviceNumber], AudioClientShareMode.Shared, useEventSync: true, 100);
+            //waveOut = new WaveOut();
+            //waveOut = new DirectSoundOut();
+            //waveOut.DeviceNumber = speakerDeviceNumber;
+
+            var bufferedWaveProvider = new BufferedWaveProvider(waveFormat);
+            bufferedWaveProvider.DiscardOnBufferOverflow = true;
+            //var volumedWaveProvider = new VolumeWaveProvider16(bufferedWaveProvider) { Volume = 2.0f };
+            var outputWaveProvider = new BufferedWaveProvider(waveFormat);
+            outputWaveProvider.DiscardOnBufferOverflow = true;
+
+            InitPlot();
+
+            listener?.Dispose();
+            listener = new Converter(inputDevice, outputDevice, waveFormat, plotView1.Model, lineSeries);
+            listener.Start();
+        }
+
+        private void buttonStart_Click(object sender, EventArgs e)
+        {
+            start();
         }
     }
 }
