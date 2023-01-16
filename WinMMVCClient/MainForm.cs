@@ -12,17 +12,18 @@ namespace WinMMVCClient
     {
         //private WaveIn waveIn;
         //private WasapiCapture waveIn;
-        private WasapiOut waveOut;
+        //private WasapiOut waveOut;
         //private WaveOut waveOut;
         //private DirectSoundOut waveOut;
         private MMDeviceCollection inputs;
         private MMDeviceCollection outputs;
         private MMDevice inputDevice;
         private MMDevice outputDevice;
-                private Converter listener;
+        private Converter listener;
         private readonly IConfiguration conf;
 
-        public PlotModel plotmodel = new PlotModel();
+        public PlotModel plotmodelWave = new PlotModel();
+        public PlotModel plotModelSpectrogram = new PlotModel();
         private LinearAxis _linearaxis1 = new LinearAxis
         {
             Position = AxisPosition.Bottom
@@ -34,13 +35,28 @@ namespace WinMMVCClient
             Position = AxisPosition.Left
         };
         public LineSeries lineSeries = new LineSeries();
+        public HeatMapSeries heatMapSeries1 = new HeatMapSeries();
 
-        public void InitPlot()
+        /// スペクトログラムチャートの初期化
+        public void InitPlotModelSpectrogram()
         {
-            plotmodel.Axes.Add(_linearaxis1);
-            plotmodel.Axes.Add(_linearaxis2);
-            plotmodel.Series.Add(lineSeries);
-            this.plotView1.Model = plotmodel;
+            const int fftnum = 512;
+            heatMapSeries1.Data = new double[100, fftnum / 2];
+            heatMapSeries1.X0 = 0.0;
+            heatMapSeries1.X1 = 100.0;
+            heatMapSeries1.Y0 = 0.0;
+            heatMapSeries1.Y1 = fftnum / 2;
+
+            plotModelSpectrogram.Series.Add(heatMapSeries1);
+            heatMapSeries1.Interpolate = false;
+        }
+
+        public void InitPlotWave()
+        {
+            plotmodelWave.Axes.Add(_linearaxis1);
+            plotmodelWave.Axes.Add(_linearaxis2);
+            plotmodelWave.Series.Add(lineSeries);
+            this.plotViewWave.Model = plotmodelWave;
         }
 
         public MainForm()
@@ -98,10 +114,11 @@ namespace WinMMVCClient
             var outputWaveProvider = new BufferedWaveProvider(waveFormat);
             outputWaveProvider.DiscardOnBufferOverflow = true;
 
-            InitPlot();
+            InitPlotWave();
+            InitPlotModelSpectrogram();
 
             listener?.Dispose();
-            listener = new Converter(inputDevice, outputDevice, waveFormat, plotView1.Model, lineSeries);
+            listener = new Converter(inputDevice, outputDevice, waveFormat, plotViewWave.Model, lineSeries, plotViewSpectrogram.Model, heatmapSeries);
             listener.Start();
         }
 

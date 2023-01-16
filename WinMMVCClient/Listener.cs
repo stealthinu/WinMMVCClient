@@ -25,6 +25,8 @@ using System.Buffers;
 using OxyPlot.Axes;
 using OxyPlot.Series;
 using OxyPlot;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using NAudio.Dsp;
 
 namespace WinMMVCClient
 {
@@ -118,7 +120,7 @@ namespace WinMMVCClient
 
         public OnnxConverter()
         {
-            var assetsRelativePath = @"..\..\..\..\..\assets";
+            var assetsRelativePath = @"..\..\..\..\assets";
             string assetsPath = GetAbsolutePath(assetsRelativePath);
             var modelFilePath = Path.Combine(assetsPath, "G_50000.onnx");
             var outputFolder = Path.Combine(assetsPath, "output");
@@ -239,12 +241,18 @@ namespace WinMMVCClient
         public int maxSample = 32768;
         public PlotModel _plot;
         public LineSeries _line;
+        public PlotModel _spectrogram;
+        public HeatMapSeries _heatmap;
+        public const int fftnum = 512;
+        public float[,] Data = new float[100, fftnum / 2];
 
-        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, PlotModel plot, LineSeries line, int segmentSize=4096, int speakerLatency=100)
+        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, PlotModel plot, LineSeries line, PlotModel spectrogram, HeatMapSeries heatmap, int segmentSize =4096, int speakerLatency=100)
         {
             onnxConverter = new OnnxConverter();
             _plot = plot;
             _line = line;
+            _spectrogram = spectrogram;
+            _heatmap = heatmap;
 
             SegmentSize = segmentSize;
             SpeakerLatency = speakerLatency;
@@ -258,30 +266,6 @@ namespace WinMMVCClient
             bytesPerSample = waveFormat.BitsPerSample / 8;
             maxSample = (1 << (bytesPerSample * 8 - 1));
             waveIn.DataAvailable += OnNewAudioData;
-        }
-
-        public void ProcessSample(float[] sample)
-        {
-            _line.Points.Clear();
-            for (int i = 0; i < sample.Length; i++)
-            {
-                _line.Points.Add(new DataPoint((double)i, sample[i]));
-            }
-            _plot.InvalidatePlot(true);
-        }
-
-        public void Start()
-        {
-            waveOut.Play();
-            waveIn.StartRecording();
-        }
-
-        public void Dispose()
-        {
-            waveIn?.StopRecording();
-            waveIn?.Dispose();
-            waveOut?.Stop();
-            waveOut?.Dispose();
         }
 
         private void OnNewAudioData(object sender, WaveInEventArgs args)
@@ -304,9 +288,96 @@ namespace WinMMVCClient
                 }
                 var audio = onnxConverter.Infer(wav); // テスト
                 ProcessSample(wav);
+                ProcessSpectrogram(sample);
                 var convertedBytes = FloatToBytesArray(audio);
                 speakerWaveProvider.AddSamples(convertedBytes, 0, convertedBytes.Length);
             }
+        }
+
+        public void ProcessSample(float[] sample)
+        {
+            _line.Points.Clear();
+            for (int i = 0; i < sample.Length; i++)
+            {
+                _line.Points.Add(new DataPoint((double)i, sample[i]));
+            }
+            _plot.InvalidatePlot(true);
+        }
+
+        public void ProcessSpectrogram(float[] sample)
+        {
+            SoundData[count] = sample * (float)FastFourierTransform.HammingWindow(count, 1024);
+            count++;
+            if (count == 1024)
+            {
+                MakeFFT(SoundData);
+                plotModelFFT.InvalidatePlot(true);
+                count = 0;
+            }
+
+            DataPointsRT.Add(new DataPoint(counttime, sample));
+            if (DataPointsRT.Count > 1024) DataPointsRT.RemoveAt(0);
+            plotModelRT.InvalidatePlot(true);
+            counttime = counttime + 1.0 / 8000.0;
+        }
+
+        public void MakeFFT(float[] data)
+        {
+            var fft = ExecuteFFT(data);
+            DataPointsFFT.Clear();
+            for (int i = 0; i < 512; i++)
+            {
+                DataPointsFFT.Add(new DataPoint(i * 4000.0 / 512.0, fft[i]));
+            }
+        }
+
+        public float[] ExecuteFFT(float[] data)
+        {
+            int len = data.Count();
+            int m = (int)Math.Log((double)data.Count(), 2);
+            var fftSample = data.Select(v => new Complex { X = v, Y = 0.0f }).ToArray();
+            FastFourierTransform.FFT(true, m, fftSample);
+            var ret = new float[len / 2];
+            for (int i = 0; i < len / 2; i++)
+            {
+                ret[i] = (float)Math.Sqrt(fftSample[i].X * fftSample[i].X
+                        + fftSample[i].Y * fftSample[i].Y) * 2.0f;
+            }
+            return ret;
+        }
+        
+        // 振幅データをスペクトログラム配列に追加する
+        private void AddSpectrogram(float[] data)
+        {
+            for (int i = 0; i < 99; i++)
+            {
+                for (int j = 0; j < fftnum / 2; j++)
+                {
+                    Data[i, j] = Data[i + 1, j];
+                }
+            }
+            for (int j = 0; j < fftnum / 2; j++)
+            {
+                Data[99, j] = data[j];
+            }
+
+            var pldata = new double[100, fftnum / 2];
+            Array.Copy(Data, pldata, Data.Length);
+            _heatmap.Data = pldata;
+        }
+
+        public void Start()
+        {
+            waveOut.Play();
+            waveIn.StartRecording();
+        }
+
+        public void Dispose()
+        {
+            waveIn?.StopRecording();
+            waveIn?.Dispose();
+            waveOut?.Stop();
+            waveOut?.Dispose();
         }
 
         private double[] GetNewAudio()
