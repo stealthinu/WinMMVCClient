@@ -34,7 +34,7 @@
             this.labelOutput = new System.Windows.Forms.Label();
             this.buttonStart = new System.Windows.Forms.Button();
             this.plotViewWave = new OxyPlot.WindowsForms.PlotView();
-            this.plotViewSpectrogram = new OxyPlot.WindowsForms.PlotView();
+            this.buttonStop = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // comboBoxInput
@@ -93,25 +93,22 @@
             this.plotViewWave.ZoomRectangleCursor = System.Windows.Forms.Cursors.SizeNWSE;
             this.plotViewWave.ZoomVerticalCursor = System.Windows.Forms.Cursors.SizeNS;
             // 
-            // plotViewSpectrogram
+            // buttonStop
             // 
-            this.plotViewSpectrogram.Location = new System.Drawing.Point(418, 87);
-            this.plotViewSpectrogram.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.plotViewSpectrogram.Name = "plotViewSpectrogram";
-            this.plotViewSpectrogram.PanCursor = System.Windows.Forms.Cursors.Hand;
-            this.plotViewSpectrogram.Size = new System.Drawing.Size(368, 293);
-            this.plotViewSpectrogram.TabIndex = 7;
-            this.plotViewSpectrogram.Text = "plotViewSpectrogram";
-            this.plotViewSpectrogram.ZoomHorizontalCursor = System.Windows.Forms.Cursors.SizeWE;
-            this.plotViewSpectrogram.ZoomRectangleCursor = System.Windows.Forms.Cursors.SizeNWSE;
-            this.plotViewSpectrogram.ZoomVerticalCursor = System.Windows.Forms.Cursors.SizeNS;
+            this.buttonStop.Location = new System.Drawing.Point(158, 398);
+            this.buttonStop.Name = "buttonStop";
+            this.buttonStop.Size = new System.Drawing.Size(121, 41);
+            this.buttonStop.TabIndex = 7;
+            this.buttonStop.Text = "Stop";
+            this.buttonStop.UseVisualStyleBackColor = true;
+            this.buttonStop.Click += new System.EventHandler(this.buttonStop_Click);
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 451);
-            this.Controls.Add(this.plotViewSpectrogram);
+            this.Controls.Add(this.buttonStop);
             this.Controls.Add(this.plotViewWave);
             this.Controls.Add(this.buttonStart);
             this.Controls.Add(this.labelOutput);
@@ -133,6 +130,6 @@
         private Label labelOutput;
         private Button buttonStart;
         private OxyPlot.WindowsForms.PlotView plotViewWave;
-        private OxyPlot.WindowsForms.PlotView plotViewSpectrogram;
+        private Button buttonStop;
     }
 }

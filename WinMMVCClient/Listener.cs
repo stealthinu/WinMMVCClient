@@ -1,28 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using NAudio.CoreAudioApi;
+﻿using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using Microsoft.ML;
-using Microsoft.ML.Data;
-using Microsoft.ML.Transforms.Onnx;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.ML.OnnxRuntime;
-using NAudio.Utils;
-using static System.Collections.Specialized.BitVector32;
-using System.Windows.Forms;
-using System.Threading.Channels;
-using System.Diagnostics;
-using System.Configuration;
-using System.Windows.Forms.Design;
 using System.Buffers;
-using OxyPlot.Axes;
 using OxyPlot.Series;
 using OxyPlot;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using NAudio.Dsp;
 
 namespace WinMMVCClient

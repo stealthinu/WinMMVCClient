@@ -8,19 +8,18 @@ using System.Diagnostics;
 
 namespace WinMMVCClient
 {
+    public class Conf
+    {
+
+    }
     public partial class MainForm : Form
     {
-        //private WaveIn waveIn;
-        //private WasapiCapture waveIn;
-        //private WasapiOut waveOut;
-        //private WaveOut waveOut;
-        //private DirectSoundOut waveOut;
         private MMDeviceCollection inputs;
         private MMDeviceCollection outputs;
         private MMDevice inputDevice;
         private MMDevice outputDevice;
         private Converter listener;
-        private readonly IConfiguration conf;
+        private IConfiguration conf;
 
         public PlotModel plotModelWave = new PlotModel();
         private LinearAxis _linearaxis1 = new LinearAxis
@@ -48,49 +47,18 @@ namespace WinMMVCClient
             InitializeComponent();
             string rootPath = System.AppDomain.CurrentDomain.BaseDirectory;
             var confFilePath = Path.Combine(rootPath, @"..\..\..\..\appsettings.json");
-            var conf = new ConfigurationBuilder().AddJsonFile(confFilePath).Build();
-            Debug.WriteLine(conf["Input"]);
-            Debug.WriteLine(conf["Output"]);
+            conf = new ConfigurationBuilder().AddJsonFile(confFilePath).Build();
             setupInputOutput(conf["Input"], conf["Output"]);
-        }
-
-        private void setupInputOutput(string inputName, string outputName)
-        {
-            inputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-            outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
-            comboBoxInput.Items.Clear();
-            foreach (var device in inputs)
-            {
-                comboBoxInput.Items.Add(device);
-            }
-            comboBoxInput.SelectedItem = inputName;
-            comboBoxOutput.Items.Clear();
-            foreach (var device in outputs)
-            {
-                comboBoxOutput.Items.Add(device);
-            }
-            comboBoxOutput.SelectedItem = outputName;
         }
 
         private void start()
         {
             if (!(comboBoxInput.SelectedItem is MMDevice && comboBoxInput.SelectedItem is MMDevice)) return;
+            fixInputOutput();
             inputDevice = (MMDevice)comboBoxInput.SelectedItem;
             outputDevice = (MMDevice)comboBoxOutput.SelectedItem;
 
             WaveFormat waveFormat = new WaveFormat(24000, 1); // 24K mono
-
-            //waveIn = new WasapiCapture(mics[micDeviceNumber]);
-            //waveIn.WaveFormat = new WaveFormat(24000, 1); // 24K mono
-            //waveIn = new WaveIn();
-            //waveIn = new WaveInEvent();
-            //waveIn.DeviceNumber = micDeviceNumber;
-            //waveIn.NumberOfBuffers = 8192;
-
-            //waveOut = new WasapiOut(speakers[speakerDeviceNumber], AudioClientShareMode.Shared, useEventSync: true, 100);
-            //waveOut = new WaveOut();
-            //waveOut = new DirectSoundOut();
-            //waveOut.DeviceNumber = speakerDeviceNumber;
 
             var bufferedWaveProvider = new BufferedWaveProvider(waveFormat);
             bufferedWaveProvider.DiscardOnBufferOverflow = true;
@@ -104,9 +72,46 @@ namespace WinMMVCClient
             listener.Start();
         }
 
+        private void stop()
+        {
+            listener?.Dispose();
+            unfixInputOutput();
+        }
+
         private void buttonStart_Click(object sender, EventArgs e)
         {
             start();
+        }
+
+        private void buttonStop_Click(object sender, EventArgs e)
+        {
+            stop();
+        }
+
+        private void setupInputOutput(string inputName, string outputName)
+        {
+            inputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+            outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+            comboBoxInput.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboBoxInput.Items.Clear();
+            comboBoxInput.Items.AddRange(inputs.ToArray());
+            comboBoxInput.SelectedItem = inputName;
+            comboBoxOutput.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboBoxOutput.Items.Clear();
+            comboBoxOutput.Items.AddRange(outputs.ToArray());
+            comboBoxOutput.SelectedItem = outputName;
+        }
+
+        private void fixInputOutput()
+        {
+            comboBoxInput.Enabled = false;
+            comboBoxOutput.Enabled = false;
+        }
+
+        private void unfixInputOutput()
+        {
+            comboBoxInput.Enabled = true;
+            comboBoxOutput.Enabled = true;
         }
     }
 }
