@@ -22,41 +22,25 @@ namespace WinMMVCClient
         private Converter listener;
         private readonly IConfiguration conf;
 
-        public PlotModel plotmodelWave = new PlotModel();
-        public PlotModel plotModelSpectrogram = new PlotModel();
+        public PlotModel plotModelWave = new PlotModel();
         private LinearAxis _linearaxis1 = new LinearAxis
         {
             Position = AxisPosition.Bottom
         };
         private LinearAxis _linearaxis2 = new LinearAxis
         {
-            Minimum = -1.0,
-            Maximum = 1.0,
+            Minimum = -32768.0,
+            Maximum = 32768.0,
             Position = AxisPosition.Left
         };
         public LineSeries lineSeries = new LineSeries();
-        public HeatMapSeries heatMapSeries1 = new HeatMapSeries();
-
-        /// スペクトログラムチャートの初期化
-        public void InitPlotModelSpectrogram()
-        {
-            const int fftnum = 512;
-            heatMapSeries1.Data = new double[100, fftnum / 2];
-            heatMapSeries1.X0 = 0.0;
-            heatMapSeries1.X1 = 100.0;
-            heatMapSeries1.Y0 = 0.0;
-            heatMapSeries1.Y1 = fftnum / 2;
-
-            plotModelSpectrogram.Series.Add(heatMapSeries1);
-            heatMapSeries1.Interpolate = false;
-        }
 
         public void InitPlotWave()
         {
-            plotmodelWave.Axes.Add(_linearaxis1);
-            plotmodelWave.Axes.Add(_linearaxis2);
-            plotmodelWave.Series.Add(lineSeries);
-            this.plotViewWave.Model = plotmodelWave;
+            plotModelWave.Axes.Add(_linearaxis1);
+            plotModelWave.Axes.Add(_linearaxis2);
+            plotModelWave.Series.Add(lineSeries);
+            this.plotViewWave.Model = plotModelWave;
         }
 
         public MainForm()
@@ -110,15 +94,13 @@ namespace WinMMVCClient
 
             var bufferedWaveProvider = new BufferedWaveProvider(waveFormat);
             bufferedWaveProvider.DiscardOnBufferOverflow = true;
-            //var volumedWaveProvider = new VolumeWaveProvider16(bufferedWaveProvider) { Volume = 2.0f };
             var outputWaveProvider = new BufferedWaveProvider(waveFormat);
             outputWaveProvider.DiscardOnBufferOverflow = true;
 
             InitPlotWave();
-            InitPlotModelSpectrogram();
 
             listener?.Dispose();
-            listener = new Converter(inputDevice, outputDevice, waveFormat, plotViewWave.Model, lineSeries, plotViewSpectrogram.Model, heatmapSeries);
+            listener = new Converter(inputDevice, outputDevice, waveFormat, plotViewWave.Model, lineSeries);
             listener.Start();
         }
 
