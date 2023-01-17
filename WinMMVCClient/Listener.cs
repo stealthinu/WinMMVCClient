@@ -1,14 +1,15 @@
 ﻿using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using Microsoft.ML;
-using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.ML.OnnxRuntime;
+using Microsoft.ML.OnnxRuntime.Tensors;
 using System.Buffers;
 using OxyPlot.Series;
 using OxyPlot;
 using NAudio.Dsp;
 using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
+using NumSharp;
 
 namespace WinMMVCClient
 {
@@ -38,14 +39,18 @@ namespace WinMMVCClient
         public OnnxConverter(string modelFilePath, IConfiguration conf)
         {
             // ONNXオプション指定
-            var opts = new SessionOptions();
-            // 下記はDirectML用のオプション指定
-            opts.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
-            opts.EnableMemoryPattern = false;
-            session = new InferenceSession(modelFilePath, opts);
+            // DirectMLの場合はパッケージを「Microsoft.ML.OnnxRuntime.DirectML」を入れる
+            // CUDAの場合はパッケージを「Microsoft.ML.OnnxRuntime.Gpu」を入れる
+            // Pythonの時と同様「Microsoft.ML.OnnxRuntime」を入れるとCPUでの変換になってしまうので注意
+            // ※下記はDirectML用のオプション指定
+            //var opts = new SessionOptions();
+            //opts.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
+            //opts.EnableMemoryPattern = false;
+            //session = new InferenceSession(modelFilePath, opts);
+            session = new InferenceSession(modelFilePath, SessionOptions.MakeSessionOptionWithCudaProvider(0));
         }
 
-        public float[] Infer(float[,] specs)
+        public float[] Infer(float[,] specs, int srcId, int tgtId)
         {
             var specsLength = specs.GetLength(0); // Spectrogramの時間長
             var specsNum = specs.GetLength(1);  // Spectrogramの周波数チャンネル数 256
@@ -61,7 +66,7 @@ namespace WinMMVCClient
                     flattedSpecs[fNum * specsLength + sNum] = specs[sNum, fNum];
                 }
             }
-            var specsTensor = new DenseTensor<float>(   //Microsoft.ML.OnnxRuntime.Tensors.DenseTensor
+            var specsTensor = new DenseTensor<float>(
                 flattedSpecs, // 音声データ(テンソル相当、floatの1次元配列)
                 specsDims // 入力データ次元 [1, 257, length]
             );
@@ -69,10 +74,10 @@ namespace WinMMVCClient
             var sidSrc = new DenseTensor<Int64>(new[] { 1 });
             var sidTgt = new DenseTensor<Int64>(new[] { 1 });
             lengths[0] = specs.Length;
-            sidSrc[0] = 101;
-            sidTgt[0] = 102;
+            sidSrc[0] = srcId;
+            sidTgt[0] = tgtId;
 
-            var namedOnnxValues = new List<NamedOnnxValue>   // Name と Value のリスト
+            var namedOnnxValues = new List<NamedOnnxValue>
             {
                 NamedOnnxValue.CreateFromTensor("specs",   specsTensor),
                 NamedOnnxValue.CreateFromTensor("lengths", lengths),
@@ -107,12 +112,10 @@ namespace WinMMVCClient
         public int maxSample = 32768;
         public PlotModel _waveView;
         public LineSeries _waveLine;
-        public PlotModel _spectrogram;
-        public HeatMapSeries _heatmap;
 
         public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, IConfiguration conf, PlotModel waveView, LineSeries waveLine, int segmentSize=4096, int speakerLatency=100)
         {
-            var rootPath = conf["root_path"]; // @"..\..\..\..\..\assets";
+            var rootPath = conf["root_path"];
             var modelFile = conf["model_file"];
             var modelFilePath = Path.Combine(rootPath, modelFile);
             var outputFolder = Path.Combine(rootPath, "output");
@@ -158,9 +161,9 @@ namespace WinMMVCClient
             audio.AddRange(buffer);
             if (audio.Count >= SegmentSize)
             {
-                var wav = GetNewAudio();
+                var wav = GetNewAudio(SegmentSize);
                 var specs = MakeSpectrogram(wav);
-                var audio = onnxConverter.Infer(specs);
+                var audio = onnxConverter.Infer(specs, 101, 102);
                 var convertedBytes = FloatToWavArray(audio, 16384);
                 speakerWaveProvider.AddSamples(convertedBytes, 0, convertedBytes.Length);
                 ProcessSample(wav);
@@ -177,14 +180,10 @@ namespace WinMMVCClient
             _waveView.InvalidatePlot(true);
         }
 
-        public float[,] MakeSpectrogram(float[] wav)
+        public float[,] MakeSpectrogram(float[] wav, int segmentSize=4096, int hopSize=128, int winSize=512)
         {
-            // specsだから4096を128毎で257chのspec作らないといけなかった
-            // 複素数データに変換
-            int segmentSize = 4096;
-            int hopSize = 128;
-            int winSize = 512; // winSizeが512なので有効なのは256まで
-            int m = 9; // winSizeの2のべき数(512=2^9) (int)Math.Log((double)winSize, 2)
+            // 4096を128毎で257chのspectrogramを作る
+            int m = (int)Math.Log((double)winSize, 2); // winSizeの2のべき数(512=2^9)
             int truncationSize = winSize / hopSize / 2; // 2
             int specNum = segmentSize / hopSize; // 32
 
@@ -205,21 +204,21 @@ namespace WinMMVCClient
                 }
                 // STFT
                 FastFourierTransform.FFT(true, m, complexWav);
-                // STFT結果の大きさをスペクトログラムに保存
+                // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256
                 // Python: spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
                 for (int i = 0; i < winSize / 2; i++)
                 {
-                    specs[n, i] = (float)Math.Sqrt(complexWav[i].X * complexWav[i].X + complexWav[i].Y * complexWav[i].Y + 1e-6);
+                    specs[n, i] = (float)Math.Sqrt(complexWav[i].X * complexWav[i].X + complexWav[i].Y * complexWav[i].Y + 1e-6) * 0.10f;
                 }
             }
 
             return specs;
         }
 
-        private float[] GetNewAudio()
+        private float[] GetNewAudio(int segmentSize)
         {
-            var count = SegmentSize;
-            if (audio.Count < SegmentSize)
+            var count = segmentSize;
+            if (audio.Count < segmentSize)
                 count = audio.Count;
             float[] values = new float[count];
             for (int i = 0; i < count; i++)

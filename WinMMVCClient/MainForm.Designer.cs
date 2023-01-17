@@ -42,15 +42,15 @@
             this.comboBoxInput.FormattingEnabled = true;
             this.comboBoxInput.Location = new System.Drawing.Point(11, 35);
             this.comboBoxInput.Name = "comboBoxInput";
-            this.comboBoxInput.Size = new System.Drawing.Size(268, 28);
+            this.comboBoxInput.Size = new System.Drawing.Size(300, 28);
             this.comboBoxInput.TabIndex = 0;
             // 
             // comboBoxOutput
             // 
             this.comboBoxOutput.FormattingEnabled = true;
-            this.comboBoxOutput.Location = new System.Drawing.Point(286, 35);
+            this.comboBoxOutput.Location = new System.Drawing.Point(317, 35);
             this.comboBoxOutput.Name = "comboBoxOutput";
-            this.comboBoxOutput.Size = new System.Drawing.Size(298, 28);
+            this.comboBoxOutput.Size = new System.Drawing.Size(300, 28);
             this.comboBoxOutput.TabIndex = 1;
             // 
             // labelInput
@@ -65,7 +65,7 @@
             // labelOutput
             // 
             this.labelOutput.AutoSize = true;
-            this.labelOutput.Location = new System.Drawing.Point(286, 9);
+            this.labelOutput.Location = new System.Drawing.Point(317, 9);
             this.labelOutput.Name = "labelOutput";
             this.labelOutput.Size = new System.Drawing.Size(55, 20);
             this.labelOutput.TabIndex = 4;
@@ -86,7 +86,7 @@
             this.plotViewWave.Location = new System.Drawing.Point(16, 87);
             this.plotViewWave.Name = "plotViewWave";
             this.plotViewWave.PanCursor = System.Windows.Forms.Cursors.Hand;
-            this.plotViewWave.Size = new System.Drawing.Size(379, 293);
+            this.plotViewWave.Size = new System.Drawing.Size(601, 293);
             this.plotViewWave.TabIndex = 6;
             this.plotViewWave.Text = "plotViewWave";
             this.plotViewWave.ZoomHorizontalCursor = System.Windows.Forms.Cursors.SizeWE;
@@ -107,7 +107,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 451);
+            this.ClientSize = new System.Drawing.Size(634, 451);
             this.Controls.Add(this.buttonStop);
             this.Controls.Add(this.plotViewWave);
             this.Controls.Add(this.buttonStart);

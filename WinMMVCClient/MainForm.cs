@@ -8,10 +8,6 @@ using System.Diagnostics;
 
 namespace WinMMVCClient
 {
-    public class Conf
-    {
-
-    }
     public partial class MainForm : Form
     {
         private MMDeviceCollection inputs;
