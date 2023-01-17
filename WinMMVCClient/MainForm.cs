@@ -48,13 +48,14 @@ namespace WinMMVCClient
             string rootPath = System.AppDomain.CurrentDomain.BaseDirectory;
             var confFilePath = Path.Combine(rootPath, @"..\..\..\..\appsettings.json");
             conf = new ConfigurationBuilder().AddJsonFile(confFilePath).Build();
-            setupInputOutput(conf["Input"], conf["Output"]);
+            setupInputOutputComboBox(conf["input"], conf["output"]);
+            InitPlotWave();
         }
 
         private void start()
         {
             if (!(comboBoxInput.SelectedItem is MMDevice && comboBoxInput.SelectedItem is MMDevice)) return;
-            fixInputOutput();
+            fixInputOutputComboBox();
             inputDevice = (MMDevice)comboBoxInput.SelectedItem;
             outputDevice = (MMDevice)comboBoxOutput.SelectedItem;
 
@@ -65,17 +66,15 @@ namespace WinMMVCClient
             var outputWaveProvider = new BufferedWaveProvider(waveFormat);
             outputWaveProvider.DiscardOnBufferOverflow = true;
 
-            InitPlotWave();
-
             listener?.Dispose();
-            listener = new Converter(inputDevice, outputDevice, waveFormat, plotViewWave.Model, lineSeries);
+            listener = new Converter(inputDevice, outputDevice, waveFormat, conf, plotViewWave.Model, lineSeries);
             listener.Start();
         }
 
         private void stop()
         {
             listener?.Dispose();
-            unfixInputOutput();
+            unfixInputOutputComboBox();
         }
 
         private void buttonStart_Click(object sender, EventArgs e)
@@ -88,7 +87,7 @@ namespace WinMMVCClient
             stop();
         }
 
-        private void setupInputOutput(string inputName, string outputName)
+        private void setupInputOutputComboBox(string inputName, string outputName)
         {
             inputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
             outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
@@ -102,13 +101,13 @@ namespace WinMMVCClient
             comboBoxOutput.SelectedItem = outputName;
         }
 
-        private void fixInputOutput()
+        private void fixInputOutputComboBox()
         {
             comboBoxInput.Enabled = false;
             comboBoxOutput.Enabled = false;
         }
 
-        private void unfixInputOutput()
+        private void unfixInputOutputComboBox()
         {
             comboBoxInput.Enabled = true;
             comboBoxOutput.Enabled = true;

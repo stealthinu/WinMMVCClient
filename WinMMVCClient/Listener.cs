@@ -7,12 +7,13 @@ using System.Buffers;
 using OxyPlot.Series;
 using OxyPlot;
 using NAudio.Dsp;
+using System.Diagnostics;
+using Microsoft.Extensions.Configuration;
 
 namespace WinMMVCClient
 {
     public class OnnxConverter
     {
-        private MLContext mlContext;
         private InferenceSession session;
 
         /*
@@ -34,20 +35,13 @@ namespace WinMMVCClient
             type: float32[1,1,Tanhaudio_dim_2]
          */
 
-        public OnnxConverter()
+        public OnnxConverter(string modelFilePath, IConfiguration conf)
         {
-            var assetsRelativePath = @"..\..\..\..\..\assets";
-            string assetsPath = GetAbsolutePath(assetsRelativePath);
-            var modelFilePath = Path.Combine(assetsPath, "G_50000.onnx");
-            var outputFolder = Path.Combine(assetsPath, "output");
-
-            mlContext = new MLContext();
-
             // ONNXオプション指定
             var opts = new SessionOptions();
-            opts.ExecutionMode = ExecutionMode.ORT_PARALLEL;
-
-            Console.WriteLine($"Read model: {modelFilePath}");
+            // 下記はDirectML用のオプション指定
+            opts.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
+            opts.EnableMemoryPattern = false;
             session = new InferenceSession(modelFilePath, opts);
         }
 
@@ -57,9 +51,10 @@ namespace WinMMVCClient
             var specsNum = specs.GetLength(1);  // Spectrogramの周波数チャンネル数 256
             var specsDims = session.InputMetadata["specs"].Dimensions; // 入力データ次元 [1, 257, length]
             specsDims[2] = specsLength;
+            var specChannels = specsDims[1]; // ONNXのSpectrogramチャンネル数 257
             // ONNXに入れるためフラットな1次元の配列にする [1, 257, length] の順
-            var flattedSpecs = new float[specsLength * 257]; // ONNXの入力は 257
-            for (int fNum = 0; fNum < specsNum; fNum++) // FFTした結果は 256
+            var flattedSpecs = new float[specsLength * specChannels]; // ArrayPool使うと入力テンソルサイズが違うと言われるので使わない
+            for (int fNum = 0; fNum < specsNum; fNum++) // FFTした結果は 256 でONNXのチャンネル数とは1違う
             {
                 for (int sNum = 0; sNum < specsLength; sNum++)
                 {
@@ -91,14 +86,6 @@ namespace WinMMVCClient
 
             return floatArray;
         }
-
-        string GetAbsolutePath(string relativePath)
-        {
-            string rootPath = System.AppDomain.CurrentDomain.BaseDirectory;
-            string fullPath = Path.Combine(rootPath, relativePath);
-
-            return fullPath;
-        }
     }
 
     public class Converter : IDisposable
@@ -123,9 +110,14 @@ namespace WinMMVCClient
         public PlotModel _spectrogram;
         public HeatMapSeries _heatmap;
 
-        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, PlotModel waveView, LineSeries waveLine, int segmentSize=4096, int speakerLatency=100)
+        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, IConfiguration conf, PlotModel waveView, LineSeries waveLine, int segmentSize=4096, int speakerLatency=100)
         {
-            onnxConverter = new OnnxConverter();
+            var rootPath = conf["root_path"]; // @"..\..\..\..\..\assets";
+            var modelFile = conf["model_file"];
+            var modelFilePath = Path.Combine(rootPath, modelFile);
+            var outputFolder = Path.Combine(rootPath, "output");
+
+            onnxConverter = new OnnxConverter(modelFilePath, conf);
             _waveView = waveView;
             _waveLine = waveLine;
 
@@ -192,14 +184,13 @@ namespace WinMMVCClient
             int segmentSize = 4096;
             int hopSize = 128;
             int winSize = 512; // winSizeが512なので有効なのは256まで
-            int m = 9; // winSizeの2のべき数(512=2^9)
+            int m = 9; // winSizeの2のべき数(512=2^9) (int)Math.Log((double)winSize, 2)
             int truncationSize = winSize / hopSize / 2; // 2
             int specNum = segmentSize / hopSize; // 32
 
             // NAudioのFFTを利用する　そのためComplexもNAudioのものを利用
-            //NAudio.Dsp.Complex[] complexWav = ArrayPool<NAudio.Dsp.Complex>.Shared.Rent(winSize);
-            NAudio.Dsp.Complex[] complexWav = new NAudio.Dsp.Complex[winSize];
-            //float[,] specs = ArrayPool<float[,]>.Shared.Rent(specNum - truncationSize * 2, winSize / 2);
+            //NAudio.Dsp.Complex[] complexWav = new NAudio.Dsp.Complex[winSize];
+            NAudio.Dsp.Complex[] complexWav = ArrayPool<NAudio.Dsp.Complex>.Shared.Rent(winSize);
             float[,] specs = new float[specNum - truncationSize * 2, winSize / 2];
             for (int n = 0; n < specNum - truncationSize * 2; n++) // 今回は窓に入らない部分はpaddingせず使わない
             {
@@ -209,10 +200,7 @@ namespace WinMMVCClient
                 var wavWin = wav.AsSpan()[start..end];
                 for (int i = 0; i < winSize; i++)
                 {
-                    var w = wavWin[i];
-                    var hw = (float)FastFourierTransform.HannWindow(i, winSize);
-                    //complexWav[i].X = wavWin[i] * (float)FastFourierTransform.HannWindow(i, winSize);
-                    complexWav[i].X = w * hw;
+                    complexWav[i].X = wavWin[i] * (float)FastFourierTransform.HannWindow(i, winSize);
                     complexWav[i].Y = 0;
                 }
                 // STFT
@@ -261,6 +249,14 @@ namespace WinMMVCClient
                 bytes[i * 2 + 1] = vals[1];
             }
             return bytes;
+        }
+
+        string GetAbsolutePath(string relativePath)
+        {
+            string rootPath = System.AppDomain.CurrentDomain.BaseDirectory;
+            string fullPath = Path.Combine(rootPath, relativePath);
+
+            return fullPath;
         }
     }
 }
