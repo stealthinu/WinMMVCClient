@@ -58,7 +58,7 @@ namespace WinMMVCClient
             specsDims[2] = specsLength;
             var specChannels = specsDims[1]; // ONNXのSpectrogramチャンネル数 257
             // ONNXに入れるためフラットな1次元の配列にする [1, 257, length] の順
-            var flattedSpecs = new float[specsLength * specChannels]; // ArrayPool使うと入力テンソルサイズが違うと言われるので使わない
+            float[] flattedSpecs = new float[specsLength * specChannels]; // ArrayPool使うと入力テンソルサイズが違うと言われるので使わない AsSpanもダメ
             for (int fNum = 0; fNum < specsNum; fNum++) // FFTした結果は 256 でONNXのチャンネル数とは1違う
             {
                 for (int sNum = 0; sNum < specsLength; sNum++)
@@ -95,25 +95,30 @@ namespace WinMMVCClient
 
     public class Converter : IDisposable
     {
+        public int SidSrc { get; set; }
+        public int SidTgt { get; set; }
+        public double AmplitudeFrac { get; private set; }
+        public double TotalSamples { get; private set; }
+        public int SampleRate { get; private set; }
+        public double TotalTimeSec { get { return (double)TotalSamples / SampleRate; } }
+        public int SpeakerLatency { get; private set; }
+        public int SegmentSize { get; private set; }
+        public int HopSize { get; private set; }
+        public int WinSize { get; private set; }
+        public int BytesPerSample { get; private set; }
+        public int MaxSample { get; private set; }
+
         private readonly WasapiCapture waveIn;
         private WasapiOut waveOut;
         private BufferedWaveProvider speakerWaveProvider;
         private OnnxConverter onnxConverter;
-
-        public double AmplitudeFrac { get; private set; }
-        public double TotalSamples { get; private set; }
-        public double TotalTimeSec { get { return (double)TotalSamples / SampleRate; } }
-        private readonly List<float> audio = new List<float>();
-        public int SamplesInMemory { get { return audio.Count; } }
-        public int SampleRate { get; private set; }
-        public int SpeakerLatency { get; private set; }
-        public int SegmentSize { get; private set; }
-        public int bytesPerSample = 2;
-        public int maxSample = 32768;
         public PlotModel _waveView;
         public LineSeries _waveLine;
 
-        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, IConfiguration conf, PlotModel waveView, LineSeries waveLine, int segmentSize=4096, int speakerLatency=100)
+        private readonly List<float> audio;
+        private float[] oldWavBuffer;
+
+        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, IConfiguration conf, PlotModel waveView, LineSeries waveLine, int segmentSize=4096, int hopSize=128, int winSize=512, int speakerLatency=100)
         {
             var rootPath = conf["root_path"];
             var modelFile = conf["model_file"];
@@ -125,16 +130,22 @@ namespace WinMMVCClient
             _waveLine = waveLine;
 
             SegmentSize = segmentSize;
+            HopSize = hopSize;
+            WinSize = winSize;
+            oldWavBuffer = Enumerable.Repeat<float>(0.0f, WinSize / 2).ToArray(); // スペクトログラム作成用に過去のwavをWinSize半分だけ保持
+            BytesPerSample = 2;
+            MaxSample = 32768;
             SpeakerLatency = speakerLatency;
             SampleRate = waveFormat.SampleRate;
+            audio = new List<float>();
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
             speakerWaveProvider.DiscardOnBufferOverflow = true;
             waveOut = new WasapiOut(speaker, AudioClientShareMode.Shared, useEventSync: true, latency: speakerLatency);
             waveOut.Init(speakerWaveProvider);
             waveIn = new WasapiCapture(mic);
             waveIn.WaveFormat = waveFormat;
-            bytesPerSample = waveFormat.BitsPerSample / 8;
-            maxSample = (1 << (bytesPerSample * 8 - 1));
+            BytesPerSample = waveFormat.BitsPerSample / 8;
+            MaxSample = (1 << (BytesPerSample * 8 - 1));
             waveIn.DataAvailable += OnNewAudioData;
         }
 
@@ -154,11 +165,15 @@ namespace WinMMVCClient
 
         private void OnNewAudioData(object sender, WaveInEventArgs args)
         {
-            int newSampleCount = args.BytesRecorded / bytesPerSample;
-            float[] buffer = BytesToFloatArray(args.Buffer, newSampleCount);
-            AmplitudeFrac = buffer.Max();
+            int newSampleCount = args.BytesRecorded / BytesPerSample;
+            float[] newWavBuffer = BytesToFloatArray(args.Buffer, newSampleCount);
+            float[] wavBuffer = new float[oldWavBuffer.Length + newWavBuffer.Length]; // oldWavBufferとnewWavBufferを繋げたものを作る
+            Array.Copy(oldWavBuffer, wavBuffer, oldWavBuffer.Length);
+            Array.Copy(newWavBuffer, 0, wavBuffer, oldWavBuffer.Length, newWavBuffer.Length);
+            Array.Copy(newWavBuffer, newWavBuffer.Length - oldWavBuffer.Length, oldWavBuffer, 0, oldWavBuffer.Length); // newWavBufferの最後をoldWavBufferとして保持する
+            AmplitudeFrac = wavBuffer.Max();
             TotalSamples += newSampleCount;
-            audio.AddRange(buffer);
+            audio.AddRange(wavBuffer);
             if (audio.Count >= SegmentSize)
             {
                 var wav = GetNewAudio(SegmentSize);
@@ -180,7 +195,7 @@ namespace WinMMVCClient
             _waveView.InvalidatePlot(true);
         }
 
-        public float[,] MakeSpectrogram(float[] wav, int segmentSize=4096, int hopSize=128, int winSize=512)
+        public float[,] MakeSpectrogram(float[] wav, int segmentSize=4096, int hopSize=128, int winSize=512, float amplify=0.10f)
         {
             // 4096を128毎で257chのspectrogramを作る
             int m = (int)Math.Log((double)winSize, 2); // winSizeの2のべき数(512=2^9)
@@ -190,7 +205,7 @@ namespace WinMMVCClient
             // NAudioのFFTを利用する　そのためComplexもNAudioのものを利用
             //NAudio.Dsp.Complex[] complexWav = new NAudio.Dsp.Complex[winSize];
             NAudio.Dsp.Complex[] complexWav = ArrayPool<NAudio.Dsp.Complex>.Shared.Rent(winSize);
-            float[,] specs = new float[specNum - truncationSize * 2, winSize / 2];
+            float[,] specs = new float[specNum - truncationSize * 2, winSize / 2]; // FFTの結果はwinSizeの半分だけ有効
             for (int n = 0; n < specNum - truncationSize * 2; n++) // 今回は窓に入らない部分はpaddingせず使わない
             {
                 // Hann窓掛けてComplex化
@@ -208,7 +223,7 @@ namespace WinMMVCClient
                 // Python: spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
                 for (int i = 0; i < winSize / 2; i++)
                 {
-                    specs[n, i] = (float)Math.Sqrt(complexWav[i].X * complexWav[i].X + complexWav[i].Y * complexWav[i].Y + 1e-6) * 0.10f;
+                    specs[n, i] = (float)Math.Sqrt(complexWav[i].X * complexWav[i].X + complexWav[i].Y * complexWav[i].Y + 1e-6) * amplify;
                 }
             }
 
@@ -232,14 +247,14 @@ namespace WinMMVCClient
             float[] buffer = new float[newSampleCount];
             for (int i = 0; i < newSampleCount; i++)
             {
-                buffer[i] = BitConverter.ToInt16(bytesBuffer, i * bytesPerSample);
+                buffer[i] = BitConverter.ToInt16(bytesBuffer, i * BytesPerSample);
             }
             return buffer;
         }
 
         private byte[] FloatToWavArray(float[] floatArray, float amplify)
         {
-            byte[] bytes = new byte[floatArray.Length * bytesPerSample];
+            byte[] bytes = new byte[floatArray.Length * BytesPerSample];
             for (int i = 0; i < floatArray.Length; i++)
             {
                 Int16 val = (Int16)(floatArray[i] * amplify);
