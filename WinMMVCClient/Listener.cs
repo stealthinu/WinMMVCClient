@@ -121,9 +121,14 @@ namespace WinMMVCClient
         private float[] prevWavBuffer;
         private float[] prevTransWav;
         private float[] wavBuffer;
+        private float[] overlappedWav;
+        private float[,] specs;
+        private int truncationSize;
+        private int specNum;
         private int prevStftWavSize;
+        private int stftM;
 
-        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, IConfiguration conf, PlotModel waveView, LineSeries waveLine, int speakerLatency = 100, int segmentSize=8192, int hopSize=128, int winSize=512, int overlapSize=512)
+        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, IConfiguration conf, PlotModel waveView, LineSeries waveLine, int speakerLatency = 100, int segmentSize=8192, int hopSize=128, int winSize=512, int overlapSize=128)
         {
             var rootPath = conf["root_path"];
             var modelFile = conf["model_file"];
@@ -138,10 +143,15 @@ namespace WinMMVCClient
             HopSize = hopSize;
             WinSize = winSize;
             OverlapSize= overlapSize;
+            truncationSize = WinSize / HopSize / 2; // 2 FFTするときに端で計算できないサイズ
+            specNum = SegmentSize / HopSize; // 32 スペクトログラムの時間方向の数
+            stftM = (int)Math.Log((double)WinSize, 2); // winSizeの2のべき数(512=2^9)
             prevStftWavSize = (((WinSize / HopSize) / 2) + 1) * HopSize; // スペクトログラム作成用に過去のwavを、WinSize半分ぶんのspecsに+1した長さだけ保持
             prevWavBuffer = Enumerable.Repeat<float>(0.0f,  prevStftWavSize + OverlapSize).ToArray();
-            wavBuffer = new float[SegmentSize + prevStftWavSize + OverlapSize]; // prevWavBufferとnewWavBufferを繋げたものが入る
             prevTransWav = Enumerable.Repeat<float>(0.0f, overlapSize).ToArray();
+            wavBuffer = new float[SegmentSize + prevStftWavSize + OverlapSize]; // prevWavBufferとnewWavBufferを繋げたものが入る
+            overlappedWav = new float[SegmentSize + prevStftWavSize];
+            specs = new float[specNum - truncationSize * 2 + 1, WinSize / 2]; // FFTの結果はwinSizeの半分だけ有効
             BytesPerSample = 2;
             MaxSample = 32768;
             SpeakerLatency = speakerLatency;
@@ -178,81 +188,61 @@ namespace WinMMVCClient
             audio.AddRange(BytesToFloatArray(args.Buffer, newSampleCount));
             if (audio.Count >= SegmentSize)
             {
-                var newWavBuffer= GetNewAudio(SegmentSize);
-                Array.Copy(prevWavBuffer, wavBuffer, prevWavBuffer.Length); // prevWavBufferとnewWavBufferをつなげてwavBufferを作る
-                Array.Copy(newWavBuffer, 0, wavBuffer, prevWavBuffer.Length, newWavBuffer.Length);
-                Array.Copy(newWavBuffer, newWavBuffer.Length - prevWavBuffer.Length, prevWavBuffer, 0, prevWavBuffer.Length); // newWavBufferの最後をprevWavBufferとして保持する
-                var specs = MakeSpectrogram(wavBuffer);
+                var newWavBuffer = GetNewAudio(SegmentSize);
+                prevWavBuffer.AsSpan().CopyTo(wavBuffer); // prevWavBufferとnewWavBufferをつなげてwavBufferを作る
+                newWavBuffer.AsSpan().CopyTo(wavBuffer.AsSpan()[prevWavBuffer.Length..]);
+                newWavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // newWavBufferの最後をprevWavBufferとして保持する
+                MakeSpectrogram(wavBuffer, specs);
                 var transWav = onnxConverter.Infer(specs, 101, 102);
-                var overlapedWav = OverlapMerge(transWav, prevTransWav, OverlapSize);
-                var convertedBytes = FloatToWavArray(overlapedWav, 32768);
+                OverlapMerge(transWav, prevTransWav, overlappedWav); // 頭をオーバーラップして最後を削って返す
+                transWav.AsSpan()[^prevTransWav.Length..].CopyTo(prevTransWav); // 変換後音声の最後をOverlapMerge用にprevTransWavとして保持する
+                var convertedBytes = FloatToWavArray(overlappedWav, 32768);
                 speakerWaveProvider.AddSamples(convertedBytes, 0, convertedBytes.Length);
-                Array.Copy(transWav, transWav.Length - prevTransWav.Length, prevTransWav, 0, prevTransWav.Length);
                 AmplitudeFrac = wavBuffer.Max();
                 TotalSamples += wavBuffer.Length;
                 ProcessSample(wavBuffer);
             }
         }
 
-        private float[] OverlapMerge(float[] nowWav, float[] prevWav, int overlapSize)
+        private void OverlapMerge(float[] nowWav, float[] prevWav, float[] overlappedWav)
         {
-            float[] overlappedWav = new float[nowWav.Length - overlapSize];
-            Array.Copy(nowWav, overlappedWav, nowWav.Length - overlapSize);
-            for (int i = 0; i < overlapSize; i++)
+            nowWav.AsSpan()[..^OverlapSize].CopyTo(overlappedWav); // 今回変換した音の最後オーバーラップ長分は次回オーバーラップして鳴らすので捨てる
+            for (int i = 0; i < OverlapSize; i++)
             {
                 var t1 = (float)i / (float)OverlapSize;
-                var t2 = (float)(overlapSize - i) / (float)overlapSize;
+                var t2 = (float)(OverlapSize - i) / (float)OverlapSize;
                 var now = nowWav[i];
                 var prev = prevWav[i];
                 var o = t1 * now + t2 * prev;
                 overlappedWav[i] = o; 
             }
-            return overlappedWav;
         }
 
-        public void ProcessSample(float[] sample)
-        {
-            _waveLine.Points.Clear();
-            for (int i = 0; i < sample.Length; i++)
-            {
-                _waveLine.Points.Add(new DataPoint((double)i, sample[i]));
-            }
-            _waveView.InvalidatePlot(true);
-        }
-
-        public float[,] MakeSpectrogram(float[] wav, int hopSize=128, int winSize=512, float amplify=0.0390f)
+        public void MakeSpectrogram(float[] wav, float[,] specs, float amplify=0.0390f)
         {
             // 4096を128毎で257chのspectrogramを作る
-            int m = (int)Math.Log((double)winSize, 2); // winSizeの2のべき数(512=2^9)
-            int truncationSize = winSize / hopSize / 2; // 2
-            int specNum = wav.Length / hopSize; // 32
-
             // NAudioのFFTを利用する　そのためComplexもNAudioのものを利用
-            //NAudio.Dsp.Complex[] complexWav = new NAudio.Dsp.Complex[winSize];
-            NAudio.Dsp.Complex[] complexWav = ArrayPool<NAudio.Dsp.Complex>.Shared.Rent(winSize);
-            float[,] specs = new float[specNum - truncationSize * 2 + 1, winSize / 2]; // FFTの結果はwinSizeの半分だけ有効
+            NAudio.Dsp.Complex[] complexWav = ArrayPool<NAudio.Dsp.Complex>.Shared.Rent(WinSize);
             for (int n = 0; n <= specNum - truncationSize * 2; n++) // paddingせずに算出できる条件は n <= ... になる
             {
                 // Hann窓掛けてComplex化
-                var start = n * hopSize;
-                var end = start + winSize;
+                var start = n * HopSize;
+                var end = start + WinSize;
                 var wavWin = wav.AsSpan()[start..end];
-                for (int i = 0; i < winSize; i++)
+                for (int i = 0; i < WinSize; i++)
                 {
-                    complexWav[i].X = wavWin[i] * (float)FastFourierTransform.HannWindow(i, winSize);
+                    complexWav[i].X = wavWin[i] * (float)FastFourierTransform.HannWindow(i, WinSize);
                     complexWav[i].Y = 0;
                 }
                 // STFT
-                FastFourierTransform.FFT(true, m, complexWav);
+                FastFourierTransform.FFT(true, stftM, complexWav);
                 // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256
                 // Python: spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
-                for (int i = 0; i < winSize / 2; i++)
+                for (int i = 0; i < WinSize / 2; i++)
                 {
                     specs[n, i] = (float)Math.Sqrt(complexWav[i].X * complexWav[i].X + complexWav[i].Y * complexWav[i].Y + 1e-6) * amplify;
                 }
             }
-
-            return specs;
         }
 
         private float[] GetNewAudio(int segmentSize)
@@ -288,6 +278,16 @@ namespace WinMMVCClient
                 bytes[i * 2 + 1] = vals[1];
             }
             return bytes;
+        }
+
+        public void ProcessSample(float[] sample)
+        {
+            _waveLine.Points.Clear();
+            for (int i = 0; i < sample.Length; i++)
+            {
+                _waveLine.Points.Add(new DataPoint((double)i, sample[i]));
+            }
+            _waveView.InvalidatePlot(true);
         }
 
         string GetAbsolutePath(string relativePath)

@@ -35,6 +35,7 @@
             this.buttonStart = new System.Windows.Forms.Button();
             this.plotViewWave = new OxyPlot.WindowsForms.PlotView();
             this.buttonStop = new System.Windows.Forms.Button();
+            this.listBoxTarget = new System.Windows.Forms.ListBox();
             this.SuspendLayout();
             // 
             // comboBoxInput
@@ -83,10 +84,10 @@
             // 
             // plotViewWave
             // 
-            this.plotViewWave.Location = new System.Drawing.Point(16, 87);
+            this.plotViewWave.Location = new System.Drawing.Point(317, 71);
             this.plotViewWave.Name = "plotViewWave";
             this.plotViewWave.PanCursor = System.Windows.Forms.Cursors.Hand;
-            this.plotViewWave.Size = new System.Drawing.Size(601, 293);
+            this.plotViewWave.Size = new System.Drawing.Size(300, 302);
             this.plotViewWave.TabIndex = 6;
             this.plotViewWave.Text = "plotViewWave";
             this.plotViewWave.ZoomHorizontalCursor = System.Windows.Forms.Cursors.SizeWE;
@@ -103,11 +104,21 @@
             this.buttonStop.UseVisualStyleBackColor = true;
             this.buttonStop.Click += new System.EventHandler(this.buttonStop_Click);
             // 
+            // listBoxTarget
+            // 
+            this.listBoxTarget.FormattingEnabled = true;
+            this.listBoxTarget.ItemHeight = 20;
+            this.listBoxTarget.Location = new System.Drawing.Point(11, 69);
+            this.listBoxTarget.Name = "listBoxTarget";
+            this.listBoxTarget.Size = new System.Drawing.Size(300, 304);
+            this.listBoxTarget.TabIndex = 8;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(634, 451);
+            this.Controls.Add(this.listBoxTarget);
             this.Controls.Add(this.buttonStop);
             this.Controls.Add(this.plotViewWave);
             this.Controls.Add(this.buttonStart);
@@ -131,5 +142,6 @@
         private Button buttonStart;
         private OxyPlot.WindowsForms.PlotView plotViewWave;
         private Button buttonStop;
+        private ListBox listBoxTarget;
     }
 }
