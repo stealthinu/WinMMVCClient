@@ -26,7 +26,9 @@ namespace WinMMVCClient
         public int SegmentSize { get; private set; }
         public int HopSize { get; private set; }
         public int WinSize { get; private set; }
+        public int SpecChannels { get; private set; }
         public int OverlapSize { get; private set; }
+        public int DisposeConv1dSpecs { get; private set; }
         public int BytesPerSample { get; private set; }
         public int MaxSample { get; private set; }
 
@@ -42,14 +44,16 @@ namespace WinMMVCClient
         private float[] prevWavBuffer;
         private float[] prevTransWav;
         private float[] wavBuffer;
+        private float[] disposedWav;
         private float[] overlappedWav;
         private float[,] specs;
-        private int truncationSize;
-        private int specNum;
+        private int truncationSpecs;
+        private int segmentSpecs;
         private int prevStftWavSize;
+        private int disposeConv1dSize;
         private int stftM;
 
-        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, IConfiguration conf, PlotModel waveView, LineSeries waveLine, int speakerLatency = 100, int segmentSize=8192, int hopSize=128, int winSize=512, int overlapSize=128)
+        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, IConfiguration conf, PlotModel waveView, LineSeries waveLine, int speakerLatency = 100, int segmentSize=8192, int hopSize=128, int winSize=512, int overlapSize=128, int disposeConv1dSpecs=4)
         {
             var rootPath = conf["root_path"];
             var modelFile = conf["model_file"];
@@ -63,17 +67,21 @@ namespace WinMMVCClient
             SegmentSize = segmentSize;
             HopSize = hopSize;
             WinSize = winSize;
-            OverlapSize= overlapSize;
-            truncationSize = WinSize / HopSize / 2; // 2 FFTするときに端で計算できないサイズ
-            specNum = SegmentSize / HopSize; // 32 スペクトログラムの時間方向の数
+            SpecChannels = WinSize / 2; // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256
+            OverlapSize = overlapSize;
+            truncationSpecs = WinSize / HopSize / 2; // 2 FFTするときに端で計算できないサイズ
+            segmentSpecs = SegmentSize / HopSize; // 32 スペクトログラムの時間方向の数
             stftM = (int)Math.Log((double)WinSize, 2); // winSizeの2のべき数(512=2^9)
             prevStftWavSize = (((WinSize / HopSize) / 2) + 1) * HopSize; // スペクトログラム作成用に過去のwavを、WinSize半分ぶんのspecsに+1した長さだけ保持
+            DisposeConv1dSpecs = disposeConv1dSpecs;
+            disposeConv1dSize = DisposeConv1dSpecs * HopSize;
             newWavBuffer = Enumerable.Repeat<float>(0.0f, SegmentSize).ToArray();
-            prevWavBuffer = Enumerable.Repeat<float>(0.0f,  prevStftWavSize + OverlapSize).ToArray();
-            prevTransWav = Enumerable.Repeat<float>(0.0f, overlapSize).ToArray();
-            wavBuffer = new float[SegmentSize + prevStftWavSize + OverlapSize]; // prevWavBufferとnewWavBufferを繋げたものが入る
+            prevWavBuffer = Enumerable.Repeat<float>(0.0f,  prevStftWavSize + disposeConv1dSize * 2 + OverlapSize).ToArray();
+            prevTransWav = Enumerable.Repeat<float>(0.0f, disposeConv1dSize * 2 + OverlapSize).ToArray();
+            wavBuffer = new float[SegmentSize + prevStftWavSize + disposeConv1dSize * 2 + OverlapSize]; // prevWavBufferとnewWavBufferを繋げたものが入る
+            disposedWav = new float[SegmentSize + prevStftWavSize + OverlapSize];
             overlappedWav = new float[SegmentSize + prevStftWavSize];
-            specs = new float[specNum - truncationSize * 2 + 1, WinSize / 2]; // FFTの結果はwinSizeの半分だけ有効
+            specs = new float[segmentSpecs - truncationSpecs * 2 + 1, SpecChannels];
             BytesPerSample = 2;
             MaxSample = 32768;
             SpeakerLatency = speakerLatency;
@@ -115,8 +123,9 @@ namespace WinMMVCClient
                 newWavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // newWavBufferの最後をprevWavBufferとして保持する
                 MakeSpectrogram(wavBuffer, specs);
                 var transWav = onnxConverter.Infer(specs, 101, 102);
-                OverlapMerge(transWav, prevTransWav, overlappedWav); // 頭をオーバーラップして最後を削って返す
-                transWav.AsSpan()[^prevTransWav.Length..].CopyTo(prevTransWav); // 変換後音声の最後をOverlapMerge用にprevTransWavとして保持する
+                transWav.AsSpan()[DisposeConv1dSpecs..^DisposeConv1dSpecs].CopyTo(disposedWav); // 前後の劣化してる部分を削除
+                OverlapMerge(disposedWav, prevTransWav, overlappedWav); // 頭をオーバーラップして最後を削って返す
+                disposedWav.AsSpan()[^prevTransWav.Length..].CopyTo(prevTransWav); // 変換後音声の最後をOverlapMerge用にprevTransWavとして保持する
                 var convertedBytes = FloatToWavArray(overlappedWav, 32768);
                 speakerWaveProvider.AddSamples(convertedBytes, 0, convertedBytes.Length);
                 AmplitudeFrac = wavBuffer.Max();
@@ -144,7 +153,7 @@ namespace WinMMVCClient
             // 4096を128毎で257chのspectrogramを作る
             // NAudioのFFTを利用する　そのためComplexもNAudioのものを利用
             NAudio.Dsp.Complex[] complexWav = ArrayPool<NAudio.Dsp.Complex>.Shared.Rent(WinSize);
-            for (int n = 0; n <= specNum - truncationSize * 2; n++) // paddingせずに算出できる条件は n <= ... になる
+            for (int n = 0; n <= segmentSpecs - truncationSpecs * 2; n++) // paddingせずに算出できる条件は n <= ... になる
             {
                 // Hann窓掛けてComplex化
                 var start = n * HopSize;
@@ -157,9 +166,8 @@ namespace WinMMVCClient
                 }
                 // STFT
                 FastFourierTransform.FFT(true, stftM, complexWav);
-                // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256
                 // Python: spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
-                for (int i = 0; i < WinSize / 2; i++)
+                for (int i = 0; i < SpecChannels; i++)
                 {
                     specs[n, i] = (float)Math.Sqrt(complexWav[i].X * complexWav[i].X + complexWav[i].Y * complexWav[i].Y + 1e-6) * amplify;
                 }
