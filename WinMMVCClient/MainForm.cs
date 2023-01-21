@@ -56,15 +56,8 @@ namespace WinMMVCClient
             inputDevice = (MMDevice)comboBoxInput.SelectedItem;
             outputDevice = (MMDevice)comboBoxOutput.SelectedItem;
 
-            WaveFormat waveFormat = new WaveFormat(24000, 1); // 24K mono
-
-            var bufferedWaveProvider = new BufferedWaveProvider(waveFormat);
-            bufferedWaveProvider.DiscardOnBufferOverflow = true;
-            var outputWaveProvider = new BufferedWaveProvider(waveFormat);
-            outputWaveProvider.DiscardOnBufferOverflow = true;
-
             listener?.Dispose();
-            listener = new Converter(inputDevice, outputDevice, waveFormat, conf, plotViewWave.Model, lineSeries);
+            listener = new Converter(inputDevice, outputDevice, conf, plotViewWave.Model, lineSeries);
             listener.Start();
         }
 

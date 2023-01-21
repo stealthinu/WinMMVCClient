@@ -52,7 +52,7 @@ namespace WinMMVCClient
         private int disposeConv1dSize;
         private int stftM;
 
-        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, IConfiguration conf, PlotModel waveView, LineSeries waveLine)
+        public Converter(MMDevice mic, MMDevice speaker, IConfiguration conf, PlotModel waveView, LineSeries waveLine)
         {
             SidSrc = Convert.ToInt32(conf["source_id"]);
             SidTgt = Convert.ToInt32(conf["target_id"]);
@@ -70,6 +70,7 @@ namespace WinMMVCClient
             BytesPerSample = 2;
             MaxSample = 32768;
             SpeakerLatency = Convert.ToInt32(conf["speaker_latency"]);
+            WaveFormat waveFormat = new WaveFormat(24000, 1); // 24K mono
             SampleRate = waveFormat.SampleRate;
             BytesPerSample = waveFormat.BitsPerSample / 8;
             MaxSample = (1 << (BytesPerSample * 8 - 1));
@@ -265,7 +266,7 @@ namespace WinMMVCClient
             // Pythonの時と同様「Microsoft.ML.OnnxRuntime」を入れるとCPUでの変換になってしまうので注意
             // ※下記はDirectML用のオプション指定
             var opts = new SessionOptions();
-            opts.AppendExecutionProvider_DML(1);
+            opts.AppendExecutionProvider_DML(0); // DirectMLでGPUのID=0指定
             opts.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
             opts.EnableMemoryPattern = false;
             session = new InferenceSession(modelFilePath, opts);
