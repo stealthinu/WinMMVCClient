@@ -265,6 +265,7 @@ namespace WinMMVCClient
             // Pythonの時と同様「Microsoft.ML.OnnxRuntime」を入れるとCPUでの変換になってしまうので注意
             // ※下記はDirectML用のオプション指定
             var opts = new SessionOptions();
+            opts.AppendExecutionProvider_DML(1);
             opts.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
             opts.EnableMemoryPattern = false;
             session = new InferenceSession(modelFilePath, opts);
