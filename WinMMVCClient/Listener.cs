@@ -9,7 +9,6 @@ using OxyPlot;
 using NAudio.Dsp;
 using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
-using NumSharp;
 using System.Configuration;
 
 namespace WinMMVCClient
@@ -32,10 +31,10 @@ namespace WinMMVCClient
         public int BytesPerSample { get; private set; }
         public int MaxSample { get; private set; }
 
+        private OnnxConverter onnxConverter;
         private readonly WasapiCapture waveIn;
         private WasapiOut waveOut;
         private BufferedWaveProvider speakerWaveProvider;
-        private OnnxConverter onnxConverter;
         public PlotModel _waveView;
         public LineSeries _waveLine;
 
@@ -53,28 +52,28 @@ namespace WinMMVCClient
         private int disposeConv1dSize;
         private int stftM;
 
-        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, IConfiguration conf, PlotModel waveView, LineSeries waveLine, int speakerLatency = 100, int segmentSize=8192, int hopSize=128, int winSize=512, int overlapSize=128, int disposeConv1dSpecs=4)
+        public Converter(MMDevice mic, MMDevice speaker, WaveFormat waveFormat, IConfiguration conf, PlotModel waveView, LineSeries waveLine)
         {
-            var rootPath = conf["root_path"];
-            var modelFile = conf["model_file"];
-            var modelFilePath = Path.Combine(rootPath, modelFile);
-            var outputFolder = Path.Combine(rootPath, "output");
-
-            onnxConverter = new OnnxConverter(modelFilePath, conf);
-            _waveView = waveView;
-            _waveLine = waveLine;
-
-            SegmentSize = segmentSize;
-            HopSize = hopSize;
-            WinSize = winSize;
+            SidSrc = Convert.ToInt32(conf["source_id"]);
+            SidTgt = Convert.ToInt32(conf["target_id"]);
+            SegmentSize = Convert.ToInt32(conf["segment_size"]);
+            HopSize = Convert.ToInt32(conf["hop_size"]);
+            WinSize = Convert.ToInt32(conf["win_size"]);
             SpecChannels = WinSize / 2; // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256
-            OverlapSize = overlapSize;
+            OverlapSize = Convert.ToInt32(conf["overlapSize"]);
             truncationSpecs = WinSize / HopSize / 2; // 2 FFTするときに端で計算できないサイズ
             segmentSpecs = SegmentSize / HopSize; // 32 スペクトログラムの時間方向の数
             stftM = (int)Math.Log((double)WinSize, 2); // winSizeの2のべき数(512=2^9)
             prevStftWavSize = (((WinSize / HopSize) / 2) + 1) * HopSize; // スペクトログラム作成用に過去のwavを、WinSize半分ぶんのspecsに+1した長さだけ保持
-            DisposeConv1dSpecs = disposeConv1dSpecs;
+            DisposeConv1dSpecs = Convert.ToInt32(conf["dispose_conv1d_specs"]);
             disposeConv1dSize = DisposeConv1dSpecs * HopSize;
+            BytesPerSample = 2;
+            MaxSample = 32768;
+            SpeakerLatency = Convert.ToInt32(conf["speaker_latency"]);
+            SampleRate = waveFormat.SampleRate;
+            BytesPerSample = waveFormat.BitsPerSample / 8;
+            MaxSample = (1 << (BytesPerSample * 8 - 1));
+
             newWavBuffer = Enumerable.Repeat<float>(0.0f, SegmentSize).ToArray();
             prevWavBuffer = Enumerable.Repeat<float>(0.0f,  prevStftWavSize + disposeConv1dSize * 2 + OverlapSize).ToArray();
             prevTransWav = Enumerable.Repeat<float>(0.0f, disposeConv1dSize * 2 + OverlapSize).ToArray();
@@ -82,19 +81,24 @@ namespace WinMMVCClient
             disposedWav = new float[SegmentSize + prevStftWavSize + OverlapSize];
             overlappedWav = new float[SegmentSize + prevStftWavSize];
             specs = new float[segmentSpecs - truncationSpecs * 2 + 1, SpecChannels];
-            BytesPerSample = 2;
-            MaxSample = 32768;
-            SpeakerLatency = speakerLatency;
-            SampleRate = waveFormat.SampleRate;
             audioBuffer = new List<float>(); // TODO: 溢れないためListにしているけど固定長バッファにして溢れたら捨てるようにしたほうがよさそう
+
+            var rootPath = conf["root_path"];
+            var modelFile = conf["model_file"];
+            var modelFilePath = Path.Combine(rootPath, modelFile);
+            var outputFolder = Path.Combine(rootPath, "output");
+            onnxConverter = new OnnxConverter(modelFilePath, conf);
+
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
             speakerWaveProvider.DiscardOnBufferOverflow = true;
-            waveOut = new WasapiOut(speaker, AudioClientShareMode.Shared, useEventSync: true, latency: speakerLatency);
+            waveOut = new WasapiOut(speaker, AudioClientShareMode.Shared, useEventSync: true, latency: SpeakerLatency);
             waveOut.Init(speakerWaveProvider);
             waveIn = new WasapiCapture(mic);
             waveIn.WaveFormat = waveFormat;
-            BytesPerSample = waveFormat.BitsPerSample / 8;
-            MaxSample = (1 << (BytesPerSample * 8 - 1));
+
+            _waveView = waveView;
+            _waveLine = waveLine;
+
             waveIn.DataAvailable += OnNewAudioData;
         }
 
@@ -112,6 +116,11 @@ namespace WinMMVCClient
             waveOut?.Dispose();
         }
 
+        public void setTargetId(int id)
+        {
+            SidTgt = id;
+        }
+
         private void OnNewAudioData(object sender, WaveInEventArgs args)
         {
             int newSampleCount = args.BytesRecorded / BytesPerSample;
@@ -122,7 +131,7 @@ namespace WinMMVCClient
                 newWavBuffer.AsSpan().CopyTo(wavBuffer.AsSpan()[prevWavBuffer.Length..]);
                 newWavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // newWavBufferの最後をprevWavBufferとして保持する
                 MakeSpectrogram(wavBuffer, specs);
-                var transWav = onnxConverter.Infer(specs, 101, 102);
+                var transWav = onnxConverter.Infer(specs, SidSrc, SidTgt);
                 transWav.AsSpan()[DisposeConv1dSpecs..^DisposeConv1dSpecs].CopyTo(disposedWav); // 前後の劣化してる部分を削除
                 OverlapMerge(disposedWav, prevTransWav, overlappedWav); // 頭をオーバーラップして最後を削って返す
                 disposedWav.AsSpan()[^prevTransWav.Length..].CopyTo(prevTransWav); // 変換後音声の最後をOverlapMerge用にprevTransWavとして保持する
@@ -178,9 +187,7 @@ namespace WinMMVCClient
         {
             if (audio.Count < SegmentSize)
                 return false;
-
-            for (int i = 0; i < SegmentSize; i++)
-                buffer[i] = audio[i];
+            audio.GetRange(0, SegmentSize).CopyTo(buffer);
             audio.RemoveRange(0, SegmentSize);
             return true;
         }
