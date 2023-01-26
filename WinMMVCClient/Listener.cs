@@ -54,22 +54,22 @@ namespace WinMMVCClient
 
         public Converter(MMDevice mic, MMDevice speaker, IConfiguration conf, PlotModel waveView, LineSeries waveLine)
         {
-            SidSrc = Convert.ToInt32(conf["source_id"]);
-            SidTgt = Convert.ToInt32(conf["target_id"]);
-            SegmentSize = Convert.ToInt32(conf["segment_size"]);
-            HopSize = Convert.ToInt32(conf["hop_size"]);
-            WinSize = Convert.ToInt32(conf["win_size"]);
+            SidSrc = conf.GetValue<int>("source_id");
+            SidTgt = conf.GetValue<int>("target_id");
+            SegmentSize = conf.GetValue<int>("segment_size");
+            HopSize = conf.GetValue<int>("hop_size");
+            WinSize = conf.GetValue<int>("win_size");
             SpecChannels = WinSize / 2; // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256
-            OverlapSize = Convert.ToInt32(conf["overlapSize"]);
+            OverlapSize = conf.GetValue<int>("overlapSize");
             truncationSpecs = WinSize / HopSize / 2; // 2 FFTするときに端で計算できないサイズ
             segmentSpecs = SegmentSize / HopSize; // 32 スペクトログラムの時間方向の数
             stftM = (int)Math.Log((double)WinSize, 2); // winSizeの2のべき数(512=2^9)
             prevStftWavSize = (((WinSize / HopSize) / 2) + 1) * HopSize; // スペクトログラム作成用に過去のwavを、WinSize半分ぶんのspecsに+1した長さだけ保持
-            DisposeConv1dSpecs = Convert.ToInt32(conf["dispose_conv1d_specs"]);
+            DisposeConv1dSpecs = conf.GetValue<int>("dispose_conv1d_specs");
             disposeConv1dSize = DisposeConv1dSpecs * HopSize;
             BytesPerSample = 2;
             MaxSample = 32768;
-            SpeakerLatency = Convert.ToInt32(conf["speaker_latency"]);
+            SpeakerLatency = conf.GetValue<int>("speaker_latency");
             WaveFormat waveFormat = new WaveFormat(24000, 1); // 24K mono
             SampleRate = waveFormat.SampleRate;
             BytesPerSample = waveFormat.BitsPerSample / 8;
