@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using OxyPlot.Axes;
@@ -81,33 +81,50 @@ namespace WinMMVCClient
         {
             string inputName = conf["input"];
             string outputName = conf["output"];
-            inputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-            var inputsArray = inputs.ToArray();
-            outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
-            var outputsArray = outputs.ToArray();
+            //inputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+            //var inputsArray = inputs.ToArray();
+            //outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+            //var outputsArray = outputs.ToArray();
             comboBoxInput.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxInput.Items.Clear();
-            comboBoxInput.Items.AddRange(inputsArray);
-            comboBoxInput.SelectedItem = inputName;
             comboBoxOutput.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxOutput.Items.Clear();
-            comboBoxOutput.Items.AddRange(outputs.ToArray());
-            for (int i = 0; i < inputsArray.Length; i++)
+            for (int i = 0; i < WaveIn.DeviceCount; i++)
             {
-                if (inputsArray[i].FriendlyName == inputName)
-                {
+                var source = WaveIn.GetCapabilities(i);
+                comboBoxInput.Items.Add(source.ProductName);
+                if (source.ProductName == inputName)
                     comboBoxInput.SelectedIndex = i;
-                    break;
-                }
             }
-            for (int i = 0; i < outputsArray.Length; i++)
+            for (int i = 0; i < WaveOut.DeviceCount; i++)
             {
-                if (outputsArray[i].FriendlyName == outputName)
-                {
+                var source = WaveOut.GetCapabilities(i);
+                comboBoxOutput.Items.Add(source.ProductName);
+                if (source.ProductName == outputName)
                     comboBoxOutput.SelectedIndex = i;
-                    break;
-                }
             }
+        }
+
+        private List<WaveInCapabilities> getWaveInCapabilities()
+        {
+            List<WaveInCapabilities> sources = new List<WaveInCapabilities>();
+
+            for (int i = 0; i < WaveIn.DeviceCount; i++)
+            {
+                sources.Add(WaveIn.GetCapabilities(i));
+            }
+            return sources;
+        }
+
+        private List<WaveOutCapabilities> getWaveOutCapabilities()
+        {
+            List<WaveOutCapabilities> sources = new List<WaveOutCapabilities>();
+
+            for (int i = 0; i < WaveOut.DeviceCount; i++)
+            {
+                sources.Add(WaveOut.GetCapabilities(i));
+            }
+            return sources;
         }
 
         private void fixInputOutputComboBox()

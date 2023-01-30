@@ -1,4 +1,4 @@
-namespace WinMMVCClient
+﻿namespace WinMMVCClient
 {
     internal static class Program
     {
