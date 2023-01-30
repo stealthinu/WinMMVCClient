@@ -56,7 +56,7 @@ namespace WinMMVCClient
         private int disposeConv1dSize;
         private int stftM;
 
-        public Converter(MMDevice mic, MMDevice speaker, IConfiguration conf, PlotModel waveView, LineSeries waveLine)
+        public Converter(int micId, int speakerId, IConfiguration conf, PlotModel waveView, LineSeries waveLine)
         {
             SidSrc = conf.GetValue<int>("source_id");
             SidTgt = conf.GetValue<int>("target_id");
@@ -100,9 +100,11 @@ namespace WinMMVCClient
             speakerWaveProvider.DiscardOnBufferOverflow = true;
             //waveOut = new WasapiOut(speaker, AudioClientShareMode.Shared, useEventSync: true, latency: SpeakerLatency);
             waveOut = new WaveOut();
+            waveOut.DeviceNumber = speakerId;
             waveOut.Init(speakerWaveProvider);
             //waveIn = new WasapiCapture(mic);
             waveIn = new WaveIn();
+            waveIn.DeviceNumber = micId;
             waveIn.WaveFormat = waveFormat;
 
             _waveView = waveView;

@@ -51,13 +51,13 @@ namespace WinMMVCClient
 
         private void start()
         {
-            if (!(comboBoxInput.SelectedItem is MMDevice && comboBoxInput.SelectedItem is MMDevice)) return;
+            //if (!(comboBoxInput.SelectedItem is MMDevice && comboBoxInput.SelectedItem is MMDevice)) return;
             fixInputOutputComboBox();
-            inputDevice = (MMDevice)comboBoxInput.SelectedItem;
-            outputDevice = (MMDevice)comboBoxOutput.SelectedItem;
+            //inputDevice = (MMDevice)comboBoxInput.SelectedItem;
+            //outputDevice = (MMDevice)comboBoxOutput.SelectedItem;
 
             listener?.Dispose();
-            listener = new Converter(inputDevice, outputDevice, conf, plotViewWave.Model, lineSeries);
+            listener = new Converter(comboBoxInput.SelectedIndex, comboBoxOutput.SelectedIndex, conf, plotViewWave.Model, lineSeries);
             listener.Start();
         }
 
