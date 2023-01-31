@@ -1,15 +1,11 @@
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
+using NAudio.Dsp;
 using Microsoft.ML;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using System.Buffers;
-using OxyPlot.Series;
-using OxyPlot;
-using NAudio.Dsp;
-using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
-using System.Configuration;
 
 namespace WinMMVCClient
 {
@@ -25,6 +21,7 @@ namespace WinMMVCClient
         public int SegmentSize { get; private set; }
         public int HopSize { get; private set; }
         public int WinSize { get; private set; }
+        public float MaxWavValue { get; private set; }
         public int SpecChannels { get; private set; }
         public int OverlapSize { get; private set; }
         public int DisposeConv1dSpecs { get; private set; }
@@ -37,8 +34,6 @@ namespace WinMMVCClient
         //private readonly WaveIn waveIn;
         //private WaveOut waveOut;
         private BufferedWaveProvider speakerWaveProvider;
-        public PlotModel _waveView;
-        public LineSeries _waveLine;
 
         private readonly List<float> audioBuffer;
         private float[] newWavBuffer;
@@ -56,31 +51,31 @@ namespace WinMMVCClient
         private int disposeConv1dSize;
         private int stftM;
 
-        public Converter(MMDevice mic, MMDevice speaker, IConfiguration conf, PlotModel waveView, LineSeries waveLine)
+        public Converter(MMDevice mic, MMDevice speaker, IConfiguration conf, IConfiguration hps)
         {
-            SidSrc = conf.GetValue<int>("source_id");
-            SidTgt = conf.GetValue<int>("target_id");
-            SegmentSize = conf.GetValue<int>("segment_size");
-            HopSize = conf.GetValue<int>("hop_size");
-            WinSize = conf.GetValue<int>("win_size");
+            SampleRate = hps.GetValue<int>("data:sampling_rate");
+            HopSize = hps.GetValue<int>("data:hop_length");
+            WinSize = hps.GetValue<int>("data:win_length");
+            MaxWavValue = hps.GetValue<float>("data:max_wav_value");
+
+            SidSrc = conf.GetValue<int>("vc_conf:source_id");
+            SidTgt = conf.GetValue<int>("vc_conf:target_id");
+            SegmentSize = conf.GetValue<int>("vc_conf:delay_flames");
             SpecChannels = WinSize / 2; // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256
-            OverlapSize = conf.GetValue<int>("overlap_size");
+            OverlapSize = conf.GetValue<int>("vc_conf:overlap");
             truncationSpecs = WinSize / HopSize / 2; // 2 FFTするときに端で計算できないサイズ
             segmentSpecs = SegmentSize / HopSize; // 32 スペクトログラムの時間方向の数
             stftM = (int)Math.Log((double)WinSize, 2); // winSizeの2のべき数(512=2^9)
             prevStftWavSize = (((WinSize / HopSize) / 2) + 1) * HopSize; // スペクトログラム作成用に過去のwavを、WinSize半分ぶんのspecsに+1した長さだけ保持
-            DisposeConv1dSpecs = conf.GetValue<int>("dispose_conv1d_specs");
+            DisposeConv1dSpecs = conf.GetValue<int>("vc_conf:dispose_conv1d_specs");
             disposeConv1dSize = DisposeConv1dSpecs * HopSize;
             BytesPerSample = 2;
-            MaxSample = 32768;
-            Latency = conf.GetValue<int>("latency");
-            SampleRate = conf.GetValue<int>("sample_rate");
+            Latency = conf.GetValue<int>("vc_conf:latency");
             WaveFormat waveFormat = new WaveFormat(SampleRate, 1); // 24K mono
             BytesPerSample = waveFormat.BitsPerSample / 8;
-            MaxSample = (1 << (BytesPerSample * 8 - 1));
 
             newWavBuffer = Enumerable.Repeat<float>(0.0f, SegmentSize).ToArray();
-            prevWavBuffer = Enumerable.Repeat<float>(0.0f,  prevStftWavSize + disposeConv1dSize * 2 + OverlapSize).ToArray();
+            prevWavBuffer = Enumerable.Repeat<float>(0.0f, prevStftWavSize + disposeConv1dSize * 2 + OverlapSize).ToArray();
             prevTransWav = Enumerable.Repeat<float>(0.0f, disposeConv1dSize * 2 + OverlapSize).ToArray();
             stftWavSize = SegmentSize + prevStftWavSize + disposeConv1dSize * 2 + OverlapSize;
             stftSpecs = (SegmentSize + disposeConv1dSize * 2 + OverlapSize) / HopSize; // 出てくるspecsはprevStftWavSize分だけ減る
@@ -90,10 +85,7 @@ namespace WinMMVCClient
             overlappedWav = new float[SegmentSize];
             audioBuffer = new List<float>(); // TODO: 溢れないためListにしているけど固定長バッファにして溢れたら捨てるようにしたほうがよさそう
 
-            var rootPath = conf["root_path"];
-            var modelFile = conf["model_file"];
-            var modelFilePath = Path.Combine(rootPath, modelFile);
-            var outputFolder = Path.Combine(rootPath, "output");
+            var modelFilePath = conf["path:model"];
             onnxConverter = new OnnxConverter(modelFilePath, conf);
 
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
@@ -106,9 +98,6 @@ namespace WinMMVCClient
             //waveOut.DeviceNumber = speakerId;
             //waveIn = new WaveIn();
             //waveIn.DeviceNumber = micId;
-
-            _waveView = waveView;
-            _waveLine = waveLine;
 
             waveIn.DataAvailable += OnNewAudioData;
         }
@@ -147,11 +136,10 @@ namespace WinMMVCClient
                 transWav.AsSpan()[disposeConv1dSize..^disposeConv1dSize].CopyTo(disposedWav); // 前後の劣化してる部分を削除
                 OverlapMerge(disposedWav, prevTransWav, overlappedWav); // 頭をオーバーラップして最後を削って返す
                 disposedWav.AsSpan()[^prevTransWav.Length..].CopyTo(prevTransWav); // 変換後音声の最後をOverlapMerge用にprevTransWavとして保持する
-                var convertedBytes = FloatToWavArray(overlappedWav, 32768);
+                var convertedBytes = FloatToWavArray(overlappedWav, MaxWavValue);
                 speakerWaveProvider.AddSamples(convertedBytes, 0, convertedBytes.Length);
                 AmplitudeFrac = wavBuffer.Max();
                 TotalSamples += wavBuffer.Length;
-                ProcessSample(wavBuffer);
             }
         }
 
@@ -165,11 +153,11 @@ namespace WinMMVCClient
                 var now = nowWav[i];
                 var prev = prevWav[i];
                 var o = t1 * now + t2 * prev;
-                overlappedWav[i] = o; 
+                overlappedWav[i] = o;
             }
         }
 
-        public void MakeSpectrogram(float[] wav, float[,] specs, float amplify=0.0390f)
+        public void MakeSpectrogram(float[] wav, float[,] specs, float amplify = 0.0390f)
         {
             // 4096を128毎で257chのspectrogramを作る
             // NAudioのFFTを利用する　そのためComplexもNAudioのものを利用
@@ -228,24 +216,6 @@ namespace WinMMVCClient
             }
             return bytes;
         }
-
-        public void ProcessSample(float[] sample)
-        {
-            _waveLine.Points.Clear();
-            for (int i = 0; i < sample.Length; i++)
-            {
-                _waveLine.Points.Add(new DataPoint((double)i, sample[i]));
-            }
-            _waveView.InvalidatePlot(true);
-        }
-
-        string GetAbsolutePath(string relativePath)
-        {
-            string rootPath = System.AppDomain.CurrentDomain.BaseDirectory;
-            string fullPath = Path.Combine(rootPath, relativePath);
-
-            return fullPath;
-        }
     }
 
     public class OnnxConverter
@@ -278,12 +248,12 @@ namespace WinMMVCClient
             // CUDAの場合はパッケージを「Microsoft.ML.OnnxRuntime.Gpu」を入れる
             // Pythonの時と同様「Microsoft.ML.OnnxRuntime」を入れるとCPUでの変換になってしまうので注意
             // ※下記はDirectML用の指定
-            //var opts = new SessionOptions();
-            //opts.AppendExecutionProvider_DML(0); // DirectMLでGPU_ID=0指定
-            //opts.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
-            //opts.EnableMemoryPattern = false;
+            var opts = new SessionOptions();
+            opts.AppendExecutionProvider_DML(conf.GetValue<int>("device:gpu_id")); // DirectMLでGPU_ID=0指定
+            opts.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
+            opts.EnableMemoryPattern = false;
             // ※下記はCUDA用の指定
-            var opts = SessionOptions.MakeSessionOptionWithCudaProvider(0); // CUDAでGPU_ID=0指定
+            //var opts = SessionOptions.MakeSessionOptionWithCudaProvider(0); // CUDAでGPU_ID=0指定
             session = new InferenceSession(modelFilePath, opts);
         }
 

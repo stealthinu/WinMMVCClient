@@ -1,10 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
-using OxyPlot.Axes;
-using OxyPlot.Series;
-using OxyPlot;
-using System.Diagnostics;
 
 namespace WinMMVCClient
 {
@@ -14,56 +10,37 @@ namespace WinMMVCClient
         private MMDeviceCollection outputs;
         private MMDevice inputDevice;
         private MMDevice outputDevice;
-        private Converter listener;
-        private IConfiguration conf;
-
-        public PlotModel plotModelWave = new PlotModel();
-        private LinearAxis _linearaxis1 = new LinearAxis
-        {
-            Position = AxisPosition.Bottom
-        };
-        private LinearAxis _linearaxis2 = new LinearAxis
-        {
-            Minimum = -32768.0,
-            Maximum = 32768.0,
-            Position = AxisPosition.Left
-        };
-        public LineSeries lineSeries = new LineSeries();
-
-        public void InitPlotWave()
-        {
-            plotModelWave.Axes.Add(_linearaxis1);
-            plotModelWave.Axes.Add(_linearaxis2);
-            plotModelWave.Series.Add(lineSeries);
-            this.plotViewWave.Model = plotModelWave;
-        }
+        private Converter converter;
+        public IConfiguration conf { get; private set; }
+        public IConfiguration hps { get; private set; }
 
         public MainForm()
         {
             InitializeComponent();
             string rootPath = System.AppDomain.CurrentDomain.BaseDirectory;
-            var confFilePath = Path.Combine(rootPath, @"..\..\..\..\appsettings.json");
+            var confFilePath = Path.Combine(rootPath, @"..\conf\myprofile.conf");
             conf = new ConfigurationBuilder().AddJsonFile(confFilePath).Build();
+            var hpsFilePath = conf["path:json"];
+            hps = new ConfigurationBuilder().AddJsonFile(hpsFilePath).Build();
             setupInputOutputComboBox();
             setupVoiceListBox();
-            InitPlotWave();
         }
 
         private void start()
         {
-            //if (!(comboBoxInput.SelectedItem is MMDevice && comboBoxInput.SelectedItem is MMDevice)) return;
+            if (!(comboBoxInput.SelectedItem is MMDevice && comboBoxInput.SelectedItem is MMDevice)) return;
             fixInputOutputComboBox();
-            //inputDevice = (MMDevice)comboBoxInput.SelectedItem;
-            //outputDevice = (MMDevice)comboBoxOutput.SelectedItem;
+            inputDevice = (MMDevice)comboBoxInput.SelectedItem;
+            outputDevice = (MMDevice)comboBoxOutput.SelectedItem;
 
-            listener?.Dispose();
-            listener = new Converter((MMDevice)comboBoxInput.SelectedItem, (MMDevice)comboBoxOutput.SelectedItem, conf, plotViewWave.Model, lineSeries);
-            listener.Start();
+            converter?.Dispose();
+            converter = new Converter(inputDevice, outputDevice, conf, hps);
+            converter.Start();
         }
 
         private void stop()
         {
-            listener?.Dispose();
+            converter?.Dispose();
             unfixInputOutputComboBox();
         }
 
@@ -79,8 +56,8 @@ namespace WinMMVCClient
 
         private void setupInputOutputComboBox()
         {
-            string inputName = conf["input"];
-            string outputName = conf["output"];
+            string inputName = conf["device:input_device1"];
+            string outputName = conf["device:output_device"];
             inputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
             var inputsArray = inputs.ToArray();
             outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
@@ -101,28 +78,6 @@ namespace WinMMVCClient
                 if (outputsArray[i].FriendlyName == outputName)
                     comboBoxOutput.SelectedIndex = i;
             }
-        }
-
-        private List<WaveInCapabilities> getWaveInCapabilities()
-        {
-            List<WaveInCapabilities> sources = new List<WaveInCapabilities>();
-
-            for (int i = 0; i < WaveIn.DeviceCount; i++)
-            {
-                sources.Add(WaveIn.GetCapabilities(i));
-            }
-            return sources;
-        }
-
-        private List<WaveOutCapabilities> getWaveOutCapabilities()
-        {
-            List<WaveOutCapabilities> sources = new List<WaveOutCapabilities>();
-
-            for (int i = 0; i < WaveOut.DeviceCount; i++)
-            {
-                sources.Add(WaveOut.GetCapabilities(i));
-            }
-            return sources;
         }
 
         private void fixInputOutputComboBox()
@@ -160,21 +115,21 @@ namespace WinMMVCClient
         {
             listBoxTarget.Items.Clear();
             var voiceList = new List<Voice>();
-            var list = conf.GetSection("voice_list");
+            var list = conf.GetSection("others:voice_list");
             var arr = list.AsEnumerable().ToArray();
             foreach (var ary in list.AsEnumerable())
             {
                 if (String.IsNullOrEmpty(ary.Value))
                     continue;
                 var keys = ary.Key.Split(':');
-                var index = Convert.ToInt32(keys[1]);
-                var id = Convert.ToInt32(keys[2]);
+                var index = Convert.ToInt32(keys[^2]);
+                var id = Convert.ToInt32(keys[^1]);
                 var name = ary.Value;
                 voiceList.Add(new Voice(index, id, name));
             }
             voiceList.Sort((a, b) => a.Index - b.Index);
             listBoxTarget.DataSource = voiceList;
-            var targetId = Convert.ToInt32(conf["target_id"]);
+            var targetId = Convert.ToInt32(conf["vc_conf:target_id"]);
             for (int i = 0; i < voiceList.Count; i++)
             {
                 if (voiceList[i].ID == targetId)
@@ -188,7 +143,7 @@ namespace WinMMVCClient
         private void listBoxTarget_SelectedIndexChanged(object sender, EventArgs e)
         {
             Voice targetVoice = (Voice)listBoxTarget.SelectedItem;
-            listener?.setTargetId(targetVoice.ID);
+            converter?.setTargetId(targetVoice.ID);
         }
     }
 }
