@@ -1,4 +1,4 @@
-﻿using NAudio.CoreAudioApi;
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using Microsoft.ML;
 using Microsoft.ML.OnnxRuntime;
@@ -32,10 +32,10 @@ namespace WinMMVCClient
         public int MaxSample { get; private set; }
 
         private OnnxConverter onnxConverter;
-        //private readonly WasapiCapture waveIn;
-        //private WasapiOut waveOut;
-        private readonly WaveIn waveIn;
-        private WaveOut waveOut;
+        private readonly WasapiCapture waveIn;
+        private WasapiOut waveOut;
+        //private readonly WaveIn waveIn;
+        //private WaveOut waveOut;
         private BufferedWaveProvider speakerWaveProvider;
         public PlotModel _waveView;
         public LineSeries _waveLine;
@@ -99,12 +99,14 @@ namespace WinMMVCClient
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
             speakerWaveProvider.DiscardOnBufferOverflow = true;
             //waveOut = new WasapiOut(speaker, AudioClientShareMode.Shared, useEventSync: true, latency: SpeakerLatency);
-            waveOut = new WaveOut();
-            waveOut.DeviceNumber = speakerId;
+            waveOut = new WasapiOut(AudioClientShareMode.Exclusive, useEventSync: true, 100);
+            //waveOut = new WaveOut();
+            //waveOut.DeviceNumber = speakerId;
             waveOut.Init(speakerWaveProvider);
             //waveIn = new WasapiCapture(mic);
-            waveIn = new WaveIn();
-            waveIn.DeviceNumber = micId;
+            waveIn = new WasapiCapture(WasapiCapture.GetDefaultCaptureDevice(), useEventSync: true);
+            //waveIn = new WaveIn();
+            //waveIn.DeviceNumber = micId;
             waveIn.WaveFormat = waveFormat;
 
             _waveView = waveView;
@@ -138,6 +140,7 @@ namespace WinMMVCClient
             audioBuffer.AddRange(BytesToFloatArray(args.Buffer, newSampleCount));
             if (TryGetNewAudio(audioBuffer, newWavBuffer))
             {
+                Debug.WriteLine(DateTime.Now.ToString("ss.fff") + $" {audioBuffer.Count} {newWavBuffer.Length} ");
                 prevWavBuffer.AsSpan().CopyTo(wavBuffer); // prevWavBufferとnewWavBufferをつなげてwavBufferを作る
                 newWavBuffer.AsSpan().CopyTo(wavBuffer.AsSpan()[prevWavBuffer.Length..]);
                 newWavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // newWavBufferの最後をprevWavBufferとして保持する
@@ -277,12 +280,12 @@ namespace WinMMVCClient
             // CUDAの場合はパッケージを「Microsoft.ML.OnnxRuntime.Gpu」を入れる
             // Pythonの時と同様「Microsoft.ML.OnnxRuntime」を入れるとCPUでの変換になってしまうので注意
             // ※下記はDirectML用のオプション指定
-            var opts = new SessionOptions();
-            opts.AppendExecutionProvider_DML(0); // DirectMLでGPUのID=0指定
-            opts.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
-            opts.EnableMemoryPattern = false;
-            session = new InferenceSession(modelFilePath, opts);
-            //session = new InferenceSession(modelFilePath, SessionOptions.MakeSessionOptionWithCudaProvider(0));
+            //var opts = new SessionOptions();
+            //opts.AppendExecutionProvider_DML(0); // DirectMLでGPUのID=0指定
+            //opts.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
+            //opts.EnableMemoryPattern = false;
+            //session = new InferenceSession(modelFilePath, opts);
+            session = new InferenceSession(modelFilePath, SessionOptions.MakeSessionOptionWithCudaProvider(0)); // GPU_ID=0
         }
 
         public float[] Infer(float[,] specs, int srcId, int tgtId)
