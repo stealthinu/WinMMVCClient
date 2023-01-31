@@ -21,7 +21,7 @@ namespace WinMMVCClient
         public double TotalSamples { get; private set; }
         public int SampleRate { get; private set; }
         public double TotalTimeSec { get { return (double)TotalSamples / SampleRate; } }
-        public int SpeakerLatency { get; private set; }
+        public int Latency { get; private set; }
         public int SegmentSize { get; private set; }
         public int HopSize { get; private set; }
         public int WinSize { get; private set; }
@@ -56,7 +56,7 @@ namespace WinMMVCClient
         private int disposeConv1dSize;
         private int stftM;
 
-        public Converter(int micId, int speakerId, IConfiguration conf, PlotModel waveView, LineSeries waveLine)
+        public Converter(MMDevice mic, MMDevice speaker, IConfiguration conf, PlotModel waveView, LineSeries waveLine)
         {
             SidSrc = conf.GetValue<int>("source_id");
             SidTgt = conf.GetValue<int>("target_id");
@@ -73,7 +73,7 @@ namespace WinMMVCClient
             disposeConv1dSize = DisposeConv1dSpecs * HopSize;
             BytesPerSample = 2;
             MaxSample = 32768;
-            SpeakerLatency = conf.GetValue<int>("speaker_latency");
+            Latency = conf.GetValue<int>("latency");
             WaveFormat waveFormat = new WaveFormat(24000, 1); // 24K mono
             SampleRate = waveFormat.SampleRate;
             BytesPerSample = waveFormat.BitsPerSample / 8;
@@ -98,16 +98,14 @@ namespace WinMMVCClient
 
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
             speakerWaveProvider.DiscardOnBufferOverflow = true;
-            //waveOut = new WasapiOut(speaker, AudioClientShareMode.Shared, useEventSync: true, latency: SpeakerLatency);
-            waveOut = new WasapiOut(AudioClientShareMode.Exclusive, useEventSync: true, 100);
+            waveOut = new WasapiOut(speaker, AudioClientShareMode.Exclusive, true, Latency);
+            waveOut.Init(speakerWaveProvider);
+            waveIn = new WasapiCapture(mic, true, Latency);
+            waveIn.WaveFormat = waveFormat;
             //waveOut = new WaveOut();
             //waveOut.DeviceNumber = speakerId;
-            waveOut.Init(speakerWaveProvider);
-            //waveIn = new WasapiCapture(mic);
-            waveIn = new WasapiCapture(WasapiCapture.GetDefaultCaptureDevice(), useEventSync: true);
             //waveIn = new WaveIn();
             //waveIn.DeviceNumber = micId;
-            waveIn.WaveFormat = waveFormat;
 
             _waveView = waveView;
             _waveLine = waveLine;
@@ -140,7 +138,7 @@ namespace WinMMVCClient
             audioBuffer.AddRange(BytesToFloatArray(args.Buffer, newSampleCount));
             if (TryGetNewAudio(audioBuffer, newWavBuffer))
             {
-                Debug.WriteLine(DateTime.Now.ToString("ss.fff") + $" {audioBuffer.Count} {newWavBuffer.Length} ");
+                // Debug.WriteLine(DateTime.Now.ToString("ss.fff") + $" {audioBuffer.Count} {newWavBuffer.Length} ");
                 prevWavBuffer.AsSpan().CopyTo(wavBuffer); // prevWavBufferとnewWavBufferをつなげてwavBufferを作る
                 newWavBuffer.AsSpan().CopyTo(wavBuffer.AsSpan()[prevWavBuffer.Length..]);
                 newWavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // newWavBufferの最後をprevWavBufferとして保持する
@@ -279,13 +277,14 @@ namespace WinMMVCClient
             // DirectMLの場合はパッケージを「Microsoft.ML.OnnxRuntime.DirectML」を入れる
             // CUDAの場合はパッケージを「Microsoft.ML.OnnxRuntime.Gpu」を入れる
             // Pythonの時と同様「Microsoft.ML.OnnxRuntime」を入れるとCPUでの変換になってしまうので注意
-            // ※下記はDirectML用のオプション指定
+            // ※下記はDirectML用の指定
             //var opts = new SessionOptions();
-            //opts.AppendExecutionProvider_DML(0); // DirectMLでGPUのID=0指定
+            //opts.AppendExecutionProvider_DML(0); // DirectMLでGPU_ID=0指定
             //opts.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
             //opts.EnableMemoryPattern = false;
-            //session = new InferenceSession(modelFilePath, opts);
-            session = new InferenceSession(modelFilePath, SessionOptions.MakeSessionOptionWithCudaProvider(0)); // GPU_ID=0
+            // ※下記はCUDA用の指定
+            var opts = SessionOptions.MakeSessionOptionWithCudaProvider(0); // CUDAでGPU_ID=0指定
+            session = new InferenceSession(modelFilePath, opts);
         }
 
         public float[] Infer(float[,] specs, int srcId, int tgtId)

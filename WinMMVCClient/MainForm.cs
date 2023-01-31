@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using OxyPlot.Axes;
@@ -57,7 +57,7 @@ namespace WinMMVCClient
             //outputDevice = (MMDevice)comboBoxOutput.SelectedItem;
 
             listener?.Dispose();
-            listener = new Converter(comboBoxInput.SelectedIndex, comboBoxOutput.SelectedIndex, conf, plotViewWave.Model, lineSeries);
+            listener = new Converter((MMDevice)comboBoxInput.SelectedItem, (MMDevice)comboBoxOutput.SelectedItem, conf, plotViewWave.Model, lineSeries);
             listener.Start();
         }
 
@@ -81,26 +81,24 @@ namespace WinMMVCClient
         {
             string inputName = conf["input"];
             string outputName = conf["output"];
-            //inputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-            //var inputsArray = inputs.ToArray();
-            //outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
-            //var outputsArray = outputs.ToArray();
+            inputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+            var inputsArray = inputs.ToArray();
+            outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+            var outputsArray = outputs.ToArray();
             comboBoxInput.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxInput.Items.Clear();
+            comboBoxInput.Items.AddRange(inputsArray);
             comboBoxOutput.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxOutput.Items.Clear();
-            for (int i = 0; i < WaveIn.DeviceCount; i++)
+            comboBoxOutput.Items.AddRange(outputsArray);
+            for (int i = 0; i < inputsArray.Length; i++)
             {
-                var source = WaveIn.GetCapabilities(i);
-                comboBoxInput.Items.Add(source.ProductName);
-                if (source.ProductName == inputName)
+                if (inputsArray[i].FriendlyName == inputName)
                     comboBoxInput.SelectedIndex = i;
             }
-            for (int i = 0; i < WaveOut.DeviceCount; i++)
+            for (int i = 0; i < outputsArray.Length; i++)
             {
-                var source = WaveOut.GetCapabilities(i);
-                comboBoxOutput.Items.Add(source.ProductName);
-                if (source.ProductName == outputName)
+                if (outputsArray[i].FriendlyName == outputName)
                     comboBoxOutput.SelectedIndex = i;
             }
         }
