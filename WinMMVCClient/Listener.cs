@@ -74,8 +74,8 @@ namespace WinMMVCClient
             BytesPerSample = 2;
             MaxSample = 32768;
             Latency = conf.GetValue<int>("latency");
-            WaveFormat waveFormat = new WaveFormat(24000, 1); // 24K mono
-            SampleRate = waveFormat.SampleRate;
+            SampleRate = conf.GetValue<int>("sample_rate");
+            WaveFormat waveFormat = new WaveFormat(SampleRate, 1); // 24K mono
             BytesPerSample = waveFormat.BitsPerSample / 8;
             MaxSample = (1 << (BytesPerSample * 8 - 1));
 
