@@ -28,124 +28,136 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.inputComboBox = new System.Windows.Forms.ComboBox();
-            this.outputComboBox = new System.Windows.Forms.ComboBox();
-            this.inputLabel = new System.Windows.Forms.Label();
-            this.outputLabel = new System.Windows.Forms.Label();
-            this.startButton = new System.Windows.Forms.Button();
-            this.stopButton = new System.Windows.Forms.Button();
-            this.targetListBox = new System.Windows.Forms.ListBox();
-            this.micVolumeAdjustTrackBar = new System.Windows.Forms.TrackBar();
-            this.micVolumeAdjustLabel = new System.Windows.Forms.Label();
-            ((System.ComponentModel.ISupportInitialize)(this.micVolumeAdjustTrackBar)).BeginInit();
+            this.InputComboBox = new System.Windows.Forms.ComboBox();
+            this.OutputComboBox = new System.Windows.Forms.ComboBox();
+            this.InputLabel = new System.Windows.Forms.Label();
+            this.OutputLabel = new System.Windows.Forms.Label();
+            this.StartButton = new System.Windows.Forms.Button();
+            this.StopButton = new System.Windows.Forms.Button();
+            this.TargetListBox = new System.Windows.Forms.ListBox();
+            this.MicVolumeAdjustTrackBar = new System.Windows.Forms.TrackBar();
+            this.MicVolumeAdjustLabel = new System.Windows.Forms.Label();
+            this.SettingButton = new System.Windows.Forms.Button();
+            ((System.ComponentModel.ISupportInitialize)(this.MicVolumeAdjustTrackBar)).BeginInit();
             this.SuspendLayout();
             // 
-            // inputComboBox
+            // InputComboBox
             // 
-            this.inputComboBox.FormattingEnabled = true;
-            this.inputComboBox.Location = new System.Drawing.Point(63, 4);
-            this.inputComboBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.inputComboBox.Name = "inputComboBox";
-            this.inputComboBox.Size = new System.Drawing.Size(210, 23);
-            this.inputComboBox.TabIndex = 0;
+            this.InputComboBox.FormattingEnabled = true;
+            this.InputComboBox.Location = new System.Drawing.Point(63, 4);
+            this.InputComboBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.InputComboBox.Name = "InputComboBox";
+            this.InputComboBox.Size = new System.Drawing.Size(210, 23);
+            this.InputComboBox.TabIndex = 0;
             // 
-            // outputComboBox
+            // OutputComboBox
             // 
-            this.outputComboBox.FormattingEnabled = true;
-            this.outputComboBox.Location = new System.Drawing.Point(63, 30);
-            this.outputComboBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.outputComboBox.Name = "outputComboBox";
-            this.outputComboBox.Size = new System.Drawing.Size(210, 23);
-            this.outputComboBox.TabIndex = 1;
+            this.OutputComboBox.FormattingEnabled = true;
+            this.OutputComboBox.Location = new System.Drawing.Point(63, 30);
+            this.OutputComboBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.OutputComboBox.Name = "OutputComboBox";
+            this.OutputComboBox.Size = new System.Drawing.Size(210, 23);
+            this.OutputComboBox.TabIndex = 1;
             // 
-            // inputLabel
+            // InputLabel
             // 
-            this.inputLabel.AutoSize = true;
-            this.inputLabel.Location = new System.Drawing.Point(10, 7);
-            this.inputLabel.Name = "inputLabel";
-            this.inputLabel.Size = new System.Drawing.Size(35, 15);
-            this.inputLabel.TabIndex = 3;
-            this.inputLabel.Text = "Input";
+            this.InputLabel.AutoSize = true;
+            this.InputLabel.Location = new System.Drawing.Point(10, 7);
+            this.InputLabel.Name = "InputLabel";
+            this.InputLabel.Size = new System.Drawing.Size(35, 15);
+            this.InputLabel.TabIndex = 3;
+            this.InputLabel.Text = "Input";
             // 
-            // outputLabel
+            // OutputLabel
             // 
-            this.outputLabel.AutoSize = true;
-            this.outputLabel.Location = new System.Drawing.Point(10, 32);
-            this.outputLabel.Name = "outputLabel";
-            this.outputLabel.Size = new System.Drawing.Size(45, 15);
-            this.outputLabel.TabIndex = 4;
-            this.outputLabel.Text = "Output";
+            this.OutputLabel.AutoSize = true;
+            this.OutputLabel.Location = new System.Drawing.Point(10, 32);
+            this.OutputLabel.Name = "OutputLabel";
+            this.OutputLabel.Size = new System.Drawing.Size(45, 15);
+            this.OutputLabel.TabIndex = 4;
+            this.OutputLabel.Text = "Output";
             // 
-            // startButton
+            // StartButton
             // 
-            this.startButton.Location = new System.Drawing.Point(10, 344);
-            this.startButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.startButton.Name = "startButton";
-            this.startButton.Size = new System.Drawing.Size(120, 32);
-            this.startButton.TabIndex = 5;
-            this.startButton.Text = "Start";
-            this.startButton.UseVisualStyleBackColor = true;
-            this.startButton.Click += new System.EventHandler(this.buttonStart_Click);
+            this.StartButton.Location = new System.Drawing.Point(10, 344);
+            this.StartButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.StartButton.Name = "StartButton";
+            this.StartButton.Size = new System.Drawing.Size(120, 32);
+            this.StartButton.TabIndex = 5;
+            this.StartButton.Text = "Start";
+            this.StartButton.UseVisualStyleBackColor = true;
+            this.StartButton.Click += new System.EventHandler(this.StartButton_Click);
             // 
-            // stopButton
+            // StopButton
             // 
-            this.stopButton.Location = new System.Drawing.Point(153, 344);
-            this.stopButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.stopButton.Name = "stopButton";
-            this.stopButton.Size = new System.Drawing.Size(120, 31);
-            this.stopButton.TabIndex = 7;
-            this.stopButton.Text = "Stop";
-            this.stopButton.UseVisualStyleBackColor = true;
-            this.stopButton.Click += new System.EventHandler(this.buttonStop_Click);
+            this.StopButton.Location = new System.Drawing.Point(153, 344);
+            this.StopButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.StopButton.Name = "StopButton";
+            this.StopButton.Size = new System.Drawing.Size(120, 31);
+            this.StopButton.TabIndex = 7;
+            this.StopButton.Text = "Stop";
+            this.StopButton.UseVisualStyleBackColor = true;
+            this.StopButton.Click += new System.EventHandler(this.StopButton_Click);
             // 
-            // targetListBox
+            // TargetListBox
             // 
-            this.targetListBox.FormattingEnabled = true;
-            this.targetListBox.ItemHeight = 15;
-            this.targetListBox.Location = new System.Drawing.Point(10, 56);
-            this.targetListBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.targetListBox.Name = "targetListBox";
-            this.targetListBox.Size = new System.Drawing.Size(263, 214);
-            this.targetListBox.TabIndex = 8;
-            this.targetListBox.SelectedIndexChanged += new System.EventHandler(this.listBoxTarget_SelectedIndexChanged);
+            this.TargetListBox.FormattingEnabled = true;
+            this.TargetListBox.ItemHeight = 15;
+            this.TargetListBox.Location = new System.Drawing.Point(10, 56);
+            this.TargetListBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.TargetListBox.Name = "TargetListBox";
+            this.TargetListBox.Size = new System.Drawing.Size(263, 214);
+            this.TargetListBox.TabIndex = 8;
+            this.TargetListBox.SelectedIndexChanged += new System.EventHandler(this.TargetListBox_SelectedIndexChanged);
             // 
-            // micVolumeAdjustTrackBar
+            // MicVolumeAdjustTrackBar
             // 
-            this.micVolumeAdjustTrackBar.Location = new System.Drawing.Point(10, 294);
-            this.micVolumeAdjustTrackBar.Maximum = 20;
-            this.micVolumeAdjustTrackBar.Minimum = -20;
-            this.micVolumeAdjustTrackBar.Name = "micVolumeAdjustTrackBar";
-            this.micVolumeAdjustTrackBar.Size = new System.Drawing.Size(132, 45);
-            this.micVolumeAdjustTrackBar.TabIndex = 9;
-            this.micVolumeAdjustTrackBar.ValueChanged += new System.EventHandler(this.trackBarMicVolumeAdjust_ValueChanged);
+            this.MicVolumeAdjustTrackBar.Location = new System.Drawing.Point(10, 294);
+            this.MicVolumeAdjustTrackBar.Maximum = 20;
+            this.MicVolumeAdjustTrackBar.Minimum = -20;
+            this.MicVolumeAdjustTrackBar.Name = "MicVolumeAdjustTrackBar";
+            this.MicVolumeAdjustTrackBar.Size = new System.Drawing.Size(132, 45);
+            this.MicVolumeAdjustTrackBar.TabIndex = 9;
+            this.MicVolumeAdjustTrackBar.ValueChanged += new System.EventHandler(this.MicVolumeAdjustTrackBar_ValueChanged);
             // 
-            // micVolumeAdjustLabel
+            // MicVolumeAdjustLabel
             // 
-            this.micVolumeAdjustLabel.AutoSize = true;
-            this.micVolumeAdjustLabel.Location = new System.Drawing.Point(16, 276);
-            this.micVolumeAdjustLabel.Name = "micVolumeAdjustLabel";
-            this.micVolumeAdjustLabel.Size = new System.Drawing.Size(104, 15);
-            this.micVolumeAdjustLabel.TabIndex = 10;
-            this.micVolumeAdjustLabel.Text = "Mic volume adjust";
+            this.MicVolumeAdjustLabel.AutoSize = true;
+            this.MicVolumeAdjustLabel.Location = new System.Drawing.Point(16, 276);
+            this.MicVolumeAdjustLabel.Name = "MicVolumeAdjustLabel";
+            this.MicVolumeAdjustLabel.Size = new System.Drawing.Size(104, 15);
+            this.MicVolumeAdjustLabel.TabIndex = 10;
+            this.MicVolumeAdjustLabel.Text = "Mic volume adjust";
+            // 
+            // SettingButton
+            // 
+            this.SettingButton.Location = new System.Drawing.Point(197, 294);
+            this.SettingButton.Name = "SettingButton";
+            this.SettingButton.Size = new System.Drawing.Size(75, 23);
+            this.SettingButton.TabIndex = 11;
+            this.SettingButton.Text = "Setting";
+            this.SettingButton.UseVisualStyleBackColor = true;
+            this.SettingButton.Click += new System.EventHandler(this.SettingButton_Click);
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(284, 385);
-            this.Controls.Add(this.micVolumeAdjustLabel);
-            this.Controls.Add(this.micVolumeAdjustTrackBar);
-            this.Controls.Add(this.targetListBox);
-            this.Controls.Add(this.stopButton);
-            this.Controls.Add(this.startButton);
-            this.Controls.Add(this.outputLabel);
-            this.Controls.Add(this.inputLabel);
-            this.Controls.Add(this.outputComboBox);
-            this.Controls.Add(this.inputComboBox);
+            this.Controls.Add(this.SettingButton);
+            this.Controls.Add(this.MicVolumeAdjustLabel);
+            this.Controls.Add(this.MicVolumeAdjustTrackBar);
+            this.Controls.Add(this.TargetListBox);
+            this.Controls.Add(this.StopButton);
+            this.Controls.Add(this.StartButton);
+            this.Controls.Add(this.OutputLabel);
+            this.Controls.Add(this.InputLabel);
+            this.Controls.Add(this.OutputComboBox);
+            this.Controls.Add(this.InputComboBox);
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Name = "MainForm";
             this.Text = "MMVC Client";
-            ((System.ComponentModel.ISupportInitialize)(this.micVolumeAdjustTrackBar)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.MicVolumeAdjustTrackBar)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -153,14 +165,15 @@
 
         #endregion
 
-        private ComboBox inputComboBox;
-        private ComboBox outputComboBox;
-        private Label inputLabel;
-        private Label outputLabel;
-        private Button startButton;
-        private Button stopButton;
-        private ListBox targetListBox;
-        private TrackBar micVolumeAdjustTrackBar;
-        private Label micVolumeAdjustLabel;
+        private ComboBox InputComboBox;
+        private ComboBox OutputComboBox;
+        private Label InputLabel;
+        private Label OutputLabel;
+        private Button StartButton;
+        private Button StopButton;
+        private ListBox TargetListBox;
+        private TrackBar MicVolumeAdjustTrackBar;
+        private Label MicVolumeAdjustLabel;
+        private Button SettingButton;
     }
 }

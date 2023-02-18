@@ -22,39 +22,39 @@ namespace WinMMVCClient
             conf = new ConfigurationBuilder().AddJsonFile(confFilePath).Build();
             var hpsFilePath = conf["path:json"];
             hps = new ConfigurationBuilder().AddJsonFile(hpsFilePath).Build();
-            setupInputOutputComboBox();
-            setupVoiceListBox();
+            SetupInputOutputComboBox();
+            SetupVoiceListBox();
         }
 
-        private void start()
+        private void Start()
         {
-            if (!(inputComboBox.SelectedItem is MMDevice && inputComboBox.SelectedItem is MMDevice)) return;
-            fixInputOutputComboBox();
-            inputDevice = (MMDevice)inputComboBox.SelectedItem;
-            outputDevice = (MMDevice)outputComboBox.SelectedItem;
+            if (!(InputComboBox.SelectedItem is MMDevice && InputComboBox.SelectedItem is MMDevice)) return;
+            FixInputOutputComboBox();
+            inputDevice = (MMDevice)InputComboBox.SelectedItem;
+            outputDevice = (MMDevice)OutputComboBox.SelectedItem;
 
             converter?.Dispose();
             converter = new Converter(inputDevice, outputDevice, conf, hps);
             converter.Start();
         }
 
-        private void stop()
+        private void Stop()
         {
             converter?.Dispose();
-            unfixInputOutputComboBox();
+            UnfixInputOutputComboBox();
         }
 
-        private void buttonStart_Click(object sender, EventArgs e)
+        private void StartButton_Click(object sender, EventArgs e)
         {
-            start();
+            Start();
         }
 
-        private void buttonStop_Click(object sender, EventArgs e)
+        private void StopButton_Click(object sender, EventArgs e)
         {
-            stop();
+            Stop();
         }
 
-        private void setupInputOutputComboBox()
+        private void SetupInputOutputComboBox()
         {
             string inputName = conf["device:input_device1"];
             string outputName = conf["device:output_device"];
@@ -62,34 +62,34 @@ namespace WinMMVCClient
             var inputsArray = inputs.ToArray();
             outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
             var outputsArray = outputs.ToArray();
-            inputComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            inputComboBox.Items.Clear();
-            inputComboBox.Items.AddRange(inputsArray);
-            outputComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            outputComboBox.Items.Clear();
-            outputComboBox.Items.AddRange(outputsArray);
+            InputComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            InputComboBox.Items.Clear();
+            InputComboBox.Items.AddRange(inputsArray);
+            OutputComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            OutputComboBox.Items.Clear();
+            OutputComboBox.Items.AddRange(outputsArray);
             for (int i = 0; i < inputsArray.Length; i++)
             {
                 if (inputsArray[i].FriendlyName == inputName)
-                    inputComboBox.SelectedIndex = i;
+                    InputComboBox.SelectedIndex = i;
             }
             for (int i = 0; i < outputsArray.Length; i++)
             {
                 if (outputsArray[i].FriendlyName == outputName)
-                    outputComboBox.SelectedIndex = i;
+                    OutputComboBox.SelectedIndex = i;
             }
         }
 
-        private void fixInputOutputComboBox()
+        private void FixInputOutputComboBox()
         {
-            inputComboBox.Enabled = false;
-            outputComboBox.Enabled = false;
+            InputComboBox.Enabled = false;
+            OutputComboBox.Enabled = false;
         }
 
-        private void unfixInputOutputComboBox()
+        private void UnfixInputOutputComboBox()
         {
-            inputComboBox.Enabled = true;
-            outputComboBox.Enabled = true;
+            InputComboBox.Enabled = true;
+            OutputComboBox.Enabled = true;
         }
 
         private record Voice
@@ -111,9 +111,9 @@ namespace WinMMVCClient
             }
         }
 
-        private void setupVoiceListBox()
+        private void SetupVoiceListBox()
         {
-            targetListBox.Items.Clear();
+            TargetListBox.Items.Clear();
             var voiceList = new List<Voice>();
             var list = conf.GetSection("others:voice_list");
             var arr = list.AsEnumerable().ToArray();
@@ -128,28 +128,33 @@ namespace WinMMVCClient
                 voiceList.Add(new Voice(index, id, name));
             }
             voiceList.Sort((a, b) => a.Index - b.Index);
-            targetListBox.DataSource = voiceList;
+            TargetListBox.DataSource = voiceList;
             var targetId = Convert.ToInt32(conf["vc_conf:target_id"]);
             for (int i = 0; i < voiceList.Count; i++)
             {
                 if (voiceList[i].ID == targetId)
                 {
-                    targetListBox.SelectedIndex = i;
+                    TargetListBox.SelectedIndex = i;
                     break;
                 }
             }
         }
 
-        private void listBoxTarget_SelectedIndexChanged(object sender, EventArgs e)
+        private void TargetListBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            Voice targetVoice = (Voice)targetListBox.SelectedItem;
+            Voice targetVoice = (Voice)TargetListBox.SelectedItem;
             converter?.setTargetId(targetVoice.ID);
         }
 
-        private void trackBarMicVolumeAdjust_ValueChanged(object sender, EventArgs e)
+        private void SettingButton_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void MicVolumeAdjustTrackBar_ValueChanged(object sender, EventArgs e)
         {
             // -20: -10dB, 20: +20dB
-            var adjustValue = micVolumeAdjustTrackBar.Value / 2.0;
+            var adjustValue = MicVolumeAdjustTrackBar.Value / 2.0;
             converter?.setMicVolumeAdjust(adjustValue);
         }
     }
