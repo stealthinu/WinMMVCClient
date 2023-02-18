@@ -6,6 +6,7 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using System.Buffers;
 using Microsoft.Extensions.Configuration;
+using NAudio.Utils;
 
 namespace WinMMVCClient
 {
@@ -27,6 +28,7 @@ namespace WinMMVCClient
         public int DisposeConv1dSpecs { get; private set; }
         public int BytesPerSample { get; private set; }
         public int MaxSample { get; private set; }
+        public double MicVolumeAdjust { get; private set; }
 
         private OnnxConverter onnxConverter;
         private readonly WasapiCapture waveIn;
@@ -60,6 +62,8 @@ namespace WinMMVCClient
 
             SidSrc = conf.GetValue<int>("vc_conf:source_id");
             SidTgt = conf.GetValue<int>("vc_conf:target_id");
+            var micVolumeAdjustDB = conf.GetValue<double>("vc_conf:mic_volume_adjust");
+            MicVolumeAdjust = Math.Pow(10.0, micVolumeAdjustDB / 20.0); // dB値を倍率に変換
             SegmentSize = conf.GetValue<int>("vc_conf:delay_flames");
             SpecChannels = WinSize / 2; // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256
             OverlapSize = conf.GetValue<int>("vc_conf:overlap");
@@ -121,10 +125,16 @@ namespace WinMMVCClient
             SidTgt = id;
         }
 
+        public void setMicVolumeAdjust(double volume)
+        {
+            var micVolumeAdjustDB = volume;
+            MicVolumeAdjust = Math.Pow(10.0, micVolumeAdjustDB / 20.0);
+        }
+
         private void OnNewAudioData(object sender, WaveInEventArgs args)
         {
             int newSampleCount = args.BytesRecorded / BytesPerSample;
-            audioBuffer.AddRange(BytesToFloatArray(args.Buffer, newSampleCount));
+            audioBuffer.AddRange(ConvertAndScaleBytesToFloatArray(args.Buffer, newSampleCount, (float)MicVolumeAdjust));
             if (TryGetNewAudio(audioBuffer, newWavBuffer))
             {
                 // Debug.WriteLine(DateTime.Now.ToString("ss.fff") + $" {audioBuffer.Count} {newWavBuffer.Length} ");
@@ -194,12 +204,12 @@ namespace WinMMVCClient
             return true;
         }
 
-        private float[] BytesToFloatArray(byte[] bytesBuffer, int newSampleCount)
+        private float[] ConvertAndScaleBytesToFloatArray(byte[] bytesBuffer, int newSampleCount, float scale)
         {
             float[] buffer = new float[newSampleCount];
             for (int i = 0; i < newSampleCount; i++)
             {
-                buffer[i] = BitConverter.ToInt16(bytesBuffer, i * BytesPerSample);
+                buffer[i] = BitConverter.ToInt16(bytesBuffer, i * BytesPerSample) * scale;
             }
             return buffer;
         }

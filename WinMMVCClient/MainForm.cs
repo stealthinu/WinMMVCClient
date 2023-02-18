@@ -145,5 +145,12 @@ namespace WinMMVCClient
             Voice targetVoice = (Voice)listBoxTarget.SelectedItem;
             converter?.setTargetId(targetVoice.ID);
         }
+
+        private void trackBarMicVolumeAdjust_ValueChanged(object sender, EventArgs e)
+        {
+            // -20: -10dB, 20: +20dB
+            var adjustValue = trackBarMicVolumeAdjust.Value / 2.0;
+            converter?.setMicVolumeAdjust(adjustValue);
+        }
     }
 }
