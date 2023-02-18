@@ -120,12 +120,12 @@ namespace WinMMVCClient
             waveOut?.Dispose();
         }
 
-        public void setTargetId(int id)
+        public void SetTargetId(int id)
         {
             SidTgt = id;
         }
 
-        public void setMicVolumeAdjust(double volume)
+        public void SetMicVolumeAdjust(double volume)
         {
             var micVolumeAdjustDB = volume;
             MicVolumeAdjust = Math.Pow(10.0, micVolumeAdjustDB / 20.0);

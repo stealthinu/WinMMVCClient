@@ -143,7 +143,7 @@ namespace WinMMVCClient
         private void TargetListBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             Voice targetVoice = (Voice)TargetListBox.SelectedItem;
-            converter?.setTargetId(targetVoice.ID);
+            converter?.SetTargetId(targetVoice.ID);
         }
 
         private void SettingButton_Click(object sender, EventArgs e)
@@ -155,7 +155,7 @@ namespace WinMMVCClient
         {
             // -20: -10dB, 20: +20dB
             var adjustValue = MicVolumeAdjustTrackBar.Value / 2.0;
-            converter?.setMicVolumeAdjust(adjustValue);
+            converter?.SetMicVolumeAdjust(adjustValue);
         }
     }
 }
