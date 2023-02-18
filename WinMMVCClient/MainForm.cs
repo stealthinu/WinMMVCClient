@@ -28,10 +28,10 @@ namespace WinMMVCClient
 
         private void start()
         {
-            if (!(comboBoxInput.SelectedItem is MMDevice && comboBoxInput.SelectedItem is MMDevice)) return;
+            if (!(inputComboBox.SelectedItem is MMDevice && inputComboBox.SelectedItem is MMDevice)) return;
             fixInputOutputComboBox();
-            inputDevice = (MMDevice)comboBoxInput.SelectedItem;
-            outputDevice = (MMDevice)comboBoxOutput.SelectedItem;
+            inputDevice = (MMDevice)inputComboBox.SelectedItem;
+            outputDevice = (MMDevice)outputComboBox.SelectedItem;
 
             converter?.Dispose();
             converter = new Converter(inputDevice, outputDevice, conf, hps);
@@ -62,34 +62,34 @@ namespace WinMMVCClient
             var inputsArray = inputs.ToArray();
             outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
             var outputsArray = outputs.ToArray();
-            comboBoxInput.DropDownStyle = ComboBoxStyle.DropDownList;
-            comboBoxInput.Items.Clear();
-            comboBoxInput.Items.AddRange(inputsArray);
-            comboBoxOutput.DropDownStyle = ComboBoxStyle.DropDownList;
-            comboBoxOutput.Items.Clear();
-            comboBoxOutput.Items.AddRange(outputsArray);
+            inputComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            inputComboBox.Items.Clear();
+            inputComboBox.Items.AddRange(inputsArray);
+            outputComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            outputComboBox.Items.Clear();
+            outputComboBox.Items.AddRange(outputsArray);
             for (int i = 0; i < inputsArray.Length; i++)
             {
                 if (inputsArray[i].FriendlyName == inputName)
-                    comboBoxInput.SelectedIndex = i;
+                    inputComboBox.SelectedIndex = i;
             }
             for (int i = 0; i < outputsArray.Length; i++)
             {
                 if (outputsArray[i].FriendlyName == outputName)
-                    comboBoxOutput.SelectedIndex = i;
+                    outputComboBox.SelectedIndex = i;
             }
         }
 
         private void fixInputOutputComboBox()
         {
-            comboBoxInput.Enabled = false;
-            comboBoxOutput.Enabled = false;
+            inputComboBox.Enabled = false;
+            outputComboBox.Enabled = false;
         }
 
         private void unfixInputOutputComboBox()
         {
-            comboBoxInput.Enabled = true;
-            comboBoxOutput.Enabled = true;
+            inputComboBox.Enabled = true;
+            outputComboBox.Enabled = true;
         }
 
         private record Voice
@@ -113,7 +113,7 @@ namespace WinMMVCClient
 
         private void setupVoiceListBox()
         {
-            listBoxTarget.Items.Clear();
+            targetListBox.Items.Clear();
             var voiceList = new List<Voice>();
             var list = conf.GetSection("others:voice_list");
             var arr = list.AsEnumerable().ToArray();
@@ -128,13 +128,13 @@ namespace WinMMVCClient
                 voiceList.Add(new Voice(index, id, name));
             }
             voiceList.Sort((a, b) => a.Index - b.Index);
-            listBoxTarget.DataSource = voiceList;
+            targetListBox.DataSource = voiceList;
             var targetId = Convert.ToInt32(conf["vc_conf:target_id"]);
             for (int i = 0; i < voiceList.Count; i++)
             {
                 if (voiceList[i].ID == targetId)
                 {
-                    listBoxTarget.SelectedIndex = i;
+                    targetListBox.SelectedIndex = i;
                     break;
                 }
             }
@@ -142,14 +142,14 @@ namespace WinMMVCClient
 
         private void listBoxTarget_SelectedIndexChanged(object sender, EventArgs e)
         {
-            Voice targetVoice = (Voice)listBoxTarget.SelectedItem;
+            Voice targetVoice = (Voice)targetListBox.SelectedItem;
             converter?.setTargetId(targetVoice.ID);
         }
 
         private void trackBarMicVolumeAdjust_ValueChanged(object sender, EventArgs e)
         {
             // -20: -10dB, 20: +20dB
-            var adjustValue = trackBarMicVolumeAdjust.Value / 2.0;
+            var adjustValue = micVolumeAdjustTrackBar.Value / 2.0;
             converter?.setMicVolumeAdjust(adjustValue);
         }
     }
