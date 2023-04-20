@@ -320,19 +320,15 @@ namespace WinMMVCClient
 
     public class TFLiteConverter
     {
-        static readonly Model model;
+        readonly Model model;
         Interpreter interpreter;
         readonly SpectrogramGenerator spectrogramGenerator;
 
         public int SampleRate { get; }
 
-        static TFLiteConverter()
+        public TFLiteConverter(String modelName = "G_140000_fix42_float32.tflite", int sampleRate = 24000)
         {
-            model = ModelLoader.Load("G_140000_fix42_float32.tflite");
-        }
-
-        public TFLiteConverter(int sampleRate = 24000)
-        {
+            model = ModelLoader.Load(modelName);
             interpreter = new Interpreter(model);
             interpreter.AllocateTensors().ThrowExceptionForStatus();
             spectrogramGenerator = new SpectrogramGenerator();
