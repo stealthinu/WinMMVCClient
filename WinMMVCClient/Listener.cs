@@ -7,6 +7,10 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 using System.Buffers;
 using Microsoft.Extensions.Configuration;
 using NAudio.Utils;
+using TensorFlowLite;
+using Microsoft.ML.Transforms;
+using System;
+using System.Reflection;
 
 namespace WinMMVCClient
 {
@@ -31,6 +35,7 @@ namespace WinMMVCClient
         public double MicVolumeAdjust { get; private set; }
 
         private OnnxConverter onnxConverter;
+        private TFLiteConverter tfliteConverter;
         private readonly WasapiCapture waveIn;
         private WasapiOut waveOut;
         //private readonly WaveIn waveIn;
@@ -91,6 +96,7 @@ namespace WinMMVCClient
 
             var modelFilePath = conf["path:model"];
             onnxConverter = new OnnxConverter(modelFilePath, conf);
+            tfliteConverter = new TFLiteConverter();
 
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
             speakerWaveProvider.DiscardOnBufferOverflow = true;
@@ -141,9 +147,11 @@ namespace WinMMVCClient
                 prevWavBuffer.AsSpan().CopyTo(wavBuffer); // prevWavBufferとnewWavBufferをつなげてwavBufferを作る
                 newWavBuffer.AsSpan().CopyTo(wavBuffer.AsSpan()[prevWavBuffer.Length..]);
                 newWavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // newWavBufferの最後をprevWavBufferとして保持する
-                MakeSpectrogram(wavBuffer, specs);
-                var transWav = onnxConverter.Infer(specs, SidSrc, SidTgt);
-                transWav.AsSpan()[disposeConv1dSize..^disposeConv1dSize].CopyTo(disposedWav); // 前後の劣化してる部分を削除
+                //MakeSpectrogram(wavBuffer, specs);
+                //var transWav = onnxConverter.Infer(specs, SidSrc, SidTgt);
+                //transWav.AsSpan()[disposeConv1dSize..^disposeConv1dSize].CopyTo(disposedWav); // 前後の劣化してる部分を削除
+                var transWav = tfliteConverter.Convert(wavBuffer, SidSrc, SidTgt);
+                transWav[disposeConv1dSize..^disposeConv1dSize].CopyTo(disposedWav); // 前後の劣化してる部分を削除
                 OverlapMerge(disposedWav, prevTransWav, overlappedWav); // 頭をオーバーラップして最後を削って返す
                 disposedWav.AsSpan()[^prevTransWav.Length..].CopyTo(prevTransWav); // 変換後音声の最後をOverlapMerge用にprevTransWavとして保持する
                 var convertedBytes = FloatToWavArray(overlappedWav, MaxWavValue);
@@ -307,6 +315,116 @@ namespace WinMMVCClient
             var floatArray = results.First().AsEnumerable<float>().ToArray();
 
             return floatArray;
+        }
+    }
+
+    public class TFLiteConverter
+    {
+        static readonly Model model;
+        Interpreter interpreter;
+        readonly SpectrogramGenerator spectrogramGenerator;
+
+        public int SampleRate { get; }
+
+        static TFLiteConverter()
+        {
+            model = ModelLoader.Load("G_140000_fix42_float32.tflite");
+        }
+
+        public TFLiteConverter(int sampleRate = 24000)
+        {
+            interpreter = new Interpreter(model);
+            interpreter.AllocateTensors().ThrowExceptionForStatus();
+            spectrogramGenerator = new SpectrogramGenerator();
+
+            SampleRate = sampleRate;
+        }
+
+        public ReadOnlySpan<float> Convert(ReadOnlySpan<float> audio, int src, int tgt)
+        {
+            var specs = spectrogramGenerator.Generate(audio); // tensorは[1, 42, 257]をフラットに並べたもの
+            var specsLengths = new long[] { specs.Length };
+            var sidSrc = new long[] { src };
+            var sidTgt = new long[] { tgt };
+
+            // 入力テンソルのセット
+            interpreter.GetInputTensor(0).CopyFromBuffer(specs).ThrowExceptionForStatus();
+            interpreter.GetInputTensor(1).CopyFromBuffer(specsLengths.AsSpan()).ThrowExceptionForStatus();
+            interpreter.GetInputTensor(2).CopyFromBuffer(sidSrc.AsSpan()).ThrowExceptionForStatus();
+            interpreter.GetInputTensor(3).CopyFromBuffer(sidTgt.AsSpan()).ThrowExceptionForStatus();
+            interpreter.Invoke().ThrowExceptionForStatus();
+            var data = interpreter.GetOutputTensor(0).GetData<float>();
+
+            return data;
+        }
+    }
+
+    class SpectrogramGenerator
+    {
+        public int HopSize { get; private set; }
+        public int WinSize { get; private set; }
+        public float MaxWavValue { get; private set; }
+        public int SpecChannels { get; private set; }
+        public int SpecLength { get; private set; }
+        private int truncationSpecs;
+        private int stftM;
+        private float[] specs; // TODO: 最終的にTFLiteに渡すためフラットなarrayで生成するから名前変えるべき？
+
+        public SpectrogramGenerator()
+        {
+            HopSize = 128;
+            WinSize = 512;
+            MaxWavValue = 32768.0f;
+            SpecChannels = WinSize / 2 + 1; // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256。なのだがなぜかvitsは+1している
+            SpecLength = 42;
+            truncationSpecs = WinSize / HopSize / 2; // 2 FFTするときに端で計算できないサイズ
+            stftM = (int)Math.Log((double)WinSize, 2); // winSizeの2のべき数(512=2^9)
+            specs = new float[SpecLength * SpecChannels];
+        }
+
+        public ReadOnlySpan<float> Generate(ReadOnlySpan<float> wav, float amplify = 0.0390f)
+        {
+            // 4096を128毎で257chのspectrogramを作る
+            // NAudioのFFTを利用する　そのためComplexもNAudioのものを利用
+            NAudio.Dsp.Complex[] complexWav = ArrayPool<NAudio.Dsp.Complex>.Shared.Rent(WinSize);
+            var wavSpecs = wav.Length / HopSize;
+            var trancatedWavSpecs = wavSpecs - truncationSpecs * 2 + 1; // paddingせずにSpec算出できる数
+            for (int n = 0; n < trancatedWavSpecs; n++)
+            {
+                // Hann窓掛けてComplex化
+                var start = n * HopSize;
+                var end = start + WinSize;
+                var wavWin = wav[start..end];
+                for (int i = 0; i < WinSize; i++)
+                {
+                    complexWav[i].X = wavWin[i] * (float)FastFourierTransform.HannWindow(i, WinSize);
+                    complexWav[i].Y = 0;
+                }
+                // STFT
+                FastFourierTransform.FFT(true, stftM, complexWav);
+                // Python: spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
+                for (int i = 0; i < SpecChannels; i++)
+                {
+                    // TFLiteに入れるためフラットな1次元の配列にする TFLiteは[1, length, 257]順になってることに注意！
+                    specs[n * SpecChannels + i] = MathF.Sqrt((float)complexWav[i].X * (float)complexWav[i].X + (float)complexWav[i].Y * (float)complexWav[i].Y + 1e-6f) * amplify;
+                }
+            }
+            return specs;
+        }
+    }
+
+    static class ModelLoader
+    {
+        static byte[] LoadBinary(string name)
+        {
+            using var resourceStream = typeof(ModelLoader).Assembly.GetManifestResourceStream(typeof(ModelLoader), "Models." + name);
+            using var memoryStream = new MemoryStream();
+            resourceStream.CopyTo(memoryStream);
+            return memoryStream.ToArray();
+        }
+        public static Model Load(string name)
+        {
+            return new Model(LoadBinary(name));
         }
     }
 }

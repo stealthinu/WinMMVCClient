@@ -1,0 +1,20 @@
+{
+    "name": "TensorFlowLite",
+    "rootNamespace": "TensorFlowLite",
+    "references": [],
+    "includePlatforms": [
+        "Android",
+        "Editor",
+        "LinuxStandalone64",
+        "macOSStandalone",
+        "WindowsStandalone64"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

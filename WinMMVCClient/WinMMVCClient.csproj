@@ -10,6 +10,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Models\G_140000_fix42_float32.tflite" />
+    <None Remove="Models\G_140000_float32.tflite" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Models\G_140000_fix42_float32.tflite" />
+    <EmbeddedResource Include="Models\G_140000_float32.tflite" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="7.0.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
@@ -18,5 +28,9 @@
     <PackageReference Include="Microsoft.ML.OnnxTransformer" Version="2.0.0" />
     <PackageReference Include="NAudio" Version="2.1.0" />
   </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\TensorFlowLite\TensorFlowLite.csproj" />
+    </ItemGroup>
 
 </Project>

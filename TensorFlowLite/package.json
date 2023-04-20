@@ -1,0 +1,6 @@
+{
+  "name": "com.yukigumo.tensorflowlite",
+  "displayName": "TensorFlow Lite for Unity",
+  "version": "0.0.1",
+  "unity": "2021.3"
+}

@@ -3,7 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinMMVCClient", "WinMMVCClient\WinMMVCClient.csproj", "{751A9BAF-5B2B-47F6-B6D8-1FB4F8E94D3D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WinMMVCClient", "WinMMVCClient\WinMMVCClient.csproj", "{751A9BAF-5B2B-47F6-B6D8-1FB4F8E94D3D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{21097C0F-44BC-4B34-B3A7-221314FC3937} = {21097C0F-44BC-4B34-B3A7-221314FC3937}
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TensorFlowLite", "TensorFlowLite\TensorFlowLite.csproj", "{21097C0F-44BC-4B34-B3A7-221314FC3937}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +26,14 @@ Global
 		{751A9BAF-5B2B-47F6-B6D8-1FB4F8E94D3D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{751A9BAF-5B2B-47F6-B6D8-1FB4F8E94D3D}.Release|x64.ActiveCfg = Release|x64
 		{751A9BAF-5B2B-47F6-B6D8-1FB4F8E94D3D}.Release|x64.Build.0 = Release|x64
+		{21097C0F-44BC-4B34-B3A7-221314FC3937}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{21097C0F-44BC-4B34-B3A7-221314FC3937}.Debug|Any CPU.Build.0 = Debug|x64
+		{21097C0F-44BC-4B34-B3A7-221314FC3937}.Debug|x64.ActiveCfg = Debug|x64
+		{21097C0F-44BC-4B34-B3A7-221314FC3937}.Debug|x64.Build.0 = Debug|x64
+		{21097C0F-44BC-4B34-B3A7-221314FC3937}.Release|Any CPU.ActiveCfg = Release|x64
+		{21097C0F-44BC-4B34-B3A7-221314FC3937}.Release|Any CPU.Build.0 = Release|x64
+		{21097C0F-44BC-4B34-B3A7-221314FC3937}.Release|x64.ActiveCfg = Release|x64
+		{21097C0F-44BC-4B34-B3A7-221314FC3937}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
