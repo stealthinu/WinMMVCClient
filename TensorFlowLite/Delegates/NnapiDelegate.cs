@@ -1,22 +1,28 @@
-﻿#if UNITY_ANDROID && !UNITY_EDITOR
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using TensorFlowLite.Delegates.Native;
 using TensorFlowLite.Native;
 using static TensorFlowLite.Native.CApi;
 using static TensorFlowLite.Delegates.Native.NnapiDelegateCApi;
 namespace TensorFlowLite.Delegates
 {
-    public unsafe struct NnapiDelegate : IDelegate
+    public static class NnapiDelegate
     {
-        public static NnapiDelegate Default { get; } = new NnapiDelegate(Options.Default);
-
-        TfLiteDelegate* tfLiteDelegate;
-        TfLiteDelegate* IDelegate.TfLiteDelegate => tfLiteDelegate;
-        public NnapiDelegate(in Options options)
+        public static bool IsSupported =>
+#if UNITY_ANDROID && !UNITY_EDITOR
+            true
+#else
+            false
+#endif
+            ;
+        public static unsafe TensorFlowLiteDelegate Create(in Options options)
         {
             fixed (TfLiteNnapiDelegateOptions* ptr = &options.tfLiteNnapiDelegateOptions)
             {
-                tfLiteDelegate = TfLiteNnapiDelegateCreate(ptr);
+                return new()
+                {
+                    TfLiteDelegate = TfLiteNnapiDelegateCreate(ptr),
+                    Delete = &TfLiteNnapiDelegateDelete,
+                };
             }
         }
 
@@ -35,28 +41,19 @@ namespace TensorFlowLite.Delegates
 
             public ExecutionPreference ExecutionPreference
             {
-                get => tfLiteNnapiDelegateOptions.execution_preference;
+                readonly get => tfLiteNnapiDelegateOptions.execution_preference;
                 set => tfLiteNnapiDelegateOptions.execution_preference = value;
             }
             public bool DisallowNnapiCpu
             {
-                get => tfLiteNnapiDelegateOptions.disallow_nnapi_cpu != 0;
+                readonly get => tfLiteNnapiDelegateOptions.disallow_nnapi_cpu != 0;
                 set => tfLiteNnapiDelegateOptions.disallow_nnapi_cpu = value ? 1 : 0;
             }
             public bool AllowFp16
             {
-                get => tfLiteNnapiDelegateOptions.allow_fp16 != 0;
+                readonly get => tfLiteNnapiDelegateOptions.allow_fp16 != 0;
                 set => tfLiteNnapiDelegateOptions.allow_fp16 = value ? 1 : 0;
             }
-        }
-        public void Dispose()
-        {
-            if (tfLiteDelegate == null)
-            {
-                return;
-            }
-            TfLiteNnapiDelegateDelete(tfLiteDelegate);
-            tfLiteDelegate = null;
         }
     }
     namespace Native
@@ -83,4 +80,3 @@ namespace TensorFlowLite.Delegates
         }
     }
 }
-#endif

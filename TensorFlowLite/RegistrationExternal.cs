@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Runtime.InteropServices;
 using TensorFlowLite.Native;
 using static TensorFlowLite.Native.CApi;

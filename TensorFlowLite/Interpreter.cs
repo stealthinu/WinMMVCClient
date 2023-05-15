@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using TensorFlowLite.Native;
 using static TensorFlowLite.Native.CApi;
@@ -11,8 +11,7 @@ namespace TensorFlowLite
     public unsafe struct Interpreter : IDisposable
     {
         internal TfLiteInterpreter* tfLiteInterpreter;
-        public Interpreter(Model model):this(model, InterpreterOptions.Default) { }
-        public Interpreter(Model model, InterpreterOptions? options)
+        public Interpreter(Model model, InterpreterOptions? options = null)
         {
             tfLiteInterpreter = TfLiteInterpreterCreate(model.tfLiteModel, options.GetValueOrDefault().tfLiteInterpreterOptions);
             if(tfLiteInterpreter == null)

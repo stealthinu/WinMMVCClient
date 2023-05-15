@@ -10,7 +10,8 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<None Include="**/*.meta" Visible="false"/>
+		<None Include="*.meta" Visible="false" />
+		<None Include="*/*.meta" Visible="false" />
 		<None Include="Plugins\**" />
 	</ItemGroup>
 

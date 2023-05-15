@@ -1,5 +1,4 @@
 ﻿using System;
-using TensorFlowLite.Delegates;
 using TensorFlowLite.Native;
 using static TensorFlowLite.Native.CApi;
 using static TensorFlowLite.Native.CApiExperimental;
@@ -10,20 +9,6 @@ namespace TensorFlowLite
     /// </summary>
     public unsafe struct InterpreterOptions : IDisposable
     {
-        static InterpreterOptions()
-        {
-            var options = Create();
-#if UNITY_ANDROID && !UNITY_EDITOR
-            options.AddDelegate(NnapiDelegate.Default);
-#elif UNITY_2022_2_OR_NEWER // TODO: Somehow XNNPackDelegate doesn't work on Pure C# project
-            options.AddDelegate(XNNPackDelegate.Default);
-#endif
-            Default = options;
-
-            options = Create();
-        }
-        public static InterpreterOptions Default { get; }
-
         internal TfLiteInterpreterOptions* tfLiteInterpreterOptions;
         /// <summary>
         /// Returns a new interpreter options instances.
@@ -34,6 +19,7 @@ namespace TensorFlowLite
             {
                 tfLiteInterpreterOptions = TfLiteInterpreterOptionsCreate()
             };
+
         /// <summary>
         /// Creates and returns a shallow copy of an options object.
         /// </summary>
@@ -45,7 +31,7 @@ namespace TensorFlowLite
         /// Sets the number of CPU threads to use for the interpreter.
         /// </summary>
         public readonly void SetThreadCount(int threadCount) => TfLiteInterpreterOptionsSetNumThreads(tfLiteInterpreterOptions, threadCount);
-        public readonly void AddDelegate<T>(T @delegate) where T: IDelegate => TfLiteInterpreterOptionsAddDelegate(tfLiteInterpreterOptions, @delegate.TfLiteDelegate); 
+        public readonly void AddDelegate(TensorFlowLiteDelegate tensorFlowLiteDelegate) => TfLiteInterpreterOptionsAddDelegate(tfLiteInterpreterOptions, tensorFlowLiteDelegate.TfLiteDelegate); 
         public readonly void SetUseNNAPI(bool enable) => TfLiteInterpreterOptionsSetUseNNAPI(tfLiteInterpreterOptions, enable);
         public readonly void SetEnableDelegateFallback(bool enable) => TfLiteInterpreterOptionsSetEnableDelegateFallback(tfLiteInterpreterOptions, enable);
         public void Dispose()

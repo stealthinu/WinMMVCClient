@@ -11,6 +11,7 @@ using TensorFlowLite;
 using Microsoft.ML.Transforms;
 using System;
 using System.Reflection;
+using TensorFlowLite.Delegates;
 
 namespace WinMMVCClient
 {
@@ -329,7 +330,10 @@ namespace WinMMVCClient
         public TFLiteConverter(String modelName = "G_140000_fix42_float32.tflite", int sampleRate = 24000)
         {
             model = ModelLoader.Load(modelName);
-            interpreter = new Interpreter(model);
+            var xnnPackDelegate = TFLiteDelegate.Create();
+            using var options = InterpreterOptions.Create();
+            options.AddDelegate(xnnPackDelegate);
+            interpreter = new Interpreter(model, options);
             interpreter.AllocateTensors().ThrowExceptionForStatus();
             spectrogramGenerator = new SpectrogramGenerator();
 
@@ -352,6 +356,19 @@ namespace WinMMVCClient
             var data = interpreter.GetOutputTensor(0).GetData<float>();
 
             return data;
+        }
+    }
+
+    static class TFLiteDelegate
+    {
+        public static TensorFlowLiteDelegate Create()
+        {
+            var xnnpackDelegateOptions = XNNPackDelegate.Options.Default;
+            xnnpackDelegateOptions.Flags |= XNNPackDelegate.Flags.Qu8;
+            xnnpackDelegateOptions.ThreadCount = 4;
+            var xnnpackDelegate = XNNPackDelegate.Create(xnnpackDelegateOptions);
+            xnnpackDelegate.Flags |= TensorFlowLite.Native.TfLiteDelegateFlags.AllowDynamicTensors;
+            return xnnpackDelegate;
         }
     }
 

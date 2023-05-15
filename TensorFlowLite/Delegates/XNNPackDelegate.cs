@@ -7,8 +7,9 @@ using static TensorFlowLite.Delegates.XNNPackDelegate;
 using static TensorFlowLite.Native.CApi;
 namespace TensorFlowLite.Delegates
 {
-    public unsafe struct XNNPackDelegate : IDelegate
+    public static class XNNPackDelegate
     {
+        public static bool IsSupported => true;
         [Flags]
         public enum Flags : uint
         {
@@ -33,17 +34,17 @@ namespace TensorFlowLite.Delegates
             internal TfLiteXNNPackDelegateOptions tfLiteXNNPackDelegateOptions;
             public int ThreadCount
             {
-                get => tfLiteXNNPackDelegateOptions.numThreads;
+                readonly get => tfLiteXNNPackDelegateOptions.numThreads;
                 set => tfLiteXNNPackDelegateOptions.numThreads = value;
             }
             public Flags Flags
             {
-                get => tfLiteXNNPackDelegateOptions.flags;
+                readonly get => tfLiteXNNPackDelegateOptions.flags;
                 set => tfLiteXNNPackDelegateOptions.flags = value;
             }
-            public WeightsCache WeightsCache
+            public unsafe WeightsCache WeightsCache
             {
-                get => new WeightsCache { tfLiteXNNPackDelegateWeightsCache = tfLiteXNNPackDelegateOptions.weightsCache };
+                readonly get => new WeightsCache { tfLiteXNNPackDelegateWeightsCache = tfLiteXNNPackDelegateOptions.weightsCache };
                 set => tfLiteXNNPackDelegateOptions.weightsCache = value.tfLiteXNNPackDelegateWeightsCache;
             }
         }
@@ -62,26 +63,17 @@ namespace TensorFlowLite.Delegates
                 tfLiteXNNPackDelegateWeightsCache = null;
             }
         }
-
-        public static XNNPackDelegate Default { get; } = new XNNPackDelegate(Options.Default);
-        TfLiteDelegate* tfLiteDelegate;
-        TfLiteDelegate* IDelegate.TfLiteDelegate => tfLiteDelegate;
-        public XNNPackDelegate(in Options options)
+        public static unsafe TensorFlowLiteDelegate Create(in Options options)
         {
             fixed(TfLiteXNNPackDelegateOptions* ptr = &options.tfLiteXNNPackDelegateOptions)
             {
-                tfLiteDelegate = TfLiteXNNPackDelegateCreate(ptr);
-            }
-        }
+                return new()
+                {
+                    TfLiteDelegate = TfLiteXNNPackDelegateCreate(ptr),
+                    Delete = &TfLiteXNNPackDelegateDelete,
 
-        public void Dispose()
-        {
-            if(tfLiteDelegate == null) 
-            {
-                return;
+                };
             }
-            TfLiteXNNPackDelegateDelete(tfLiteDelegate); 
-            tfLiteDelegate = null;
         }
     }
     namespace Native

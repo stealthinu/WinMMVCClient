@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 
 namespace TensorFlowLite.Native
 {
@@ -35,19 +36,78 @@ namespace TensorFlowLite.Native
     /// </remarks>
     public struct TfLiteRegistrationExternal { }
 
+    public struct TfLiteContext { }
     public struct TfLiteOpaqueContext { }
 
     public struct TfLiteOpaqueNode { }
     public struct TfLiteOpaqueTensor { }
-    public struct TfLiteDelegate { }
+    [Flags]
+    public enum TfLiteDelegateFlags : long
+    {
+        None = 0,
+
+        /// <summary>
+        /// The flag is set if the delegate can handle dynamic sized tensors.
+        /// For example, the output shape of a `Resize` op with non-constant shape
+        /// can only be inferred when the op is invoked.
+        /// In this case, the Delegate is responsible for calling
+        /// `SetTensorToDynamic` to mark the tensor as a dynamic tensor, and calling
+        /// `ResizeTensor` when invoking the op.
+        ///
+        /// If the delegate isn't capable to handle dynamic tensors, this flag need
+        /// to be set to false.
+        /// </summary>
+        AllowDynamicTensors = 1,
+        /// <summary>
+        /// This flag can be used by delegates (that allow dynamic tensors) to ensure
+        /// applicable tensor shapes are automatically propagated in the case of tensor
+        /// resizing.
+        /// This means that non-dynamic (allocation_type != kTfLiteDynamic) I/O tensors
+        /// of a delegate kernel will have correct shapes before its Prepare() method
+        /// is called. The runtime leverages TFLite builtin ops in the original
+        /// execution plan to propagate shapes.
+        /// </summary>
+        /// <remarks>
+        /// A few points to note:
+        /// 1. This requires kTfLiteDelegateFlagsAllowDynamicTensors. If that flag is
+        /// false, this one is redundant since the delegate kernels are re-initialized
+        /// every time tensors are resized.
+        /// 2. Enabling this flag adds some overhead to AllocateTensors(), since extra
+        /// work is required to prepare the original execution plan.
+        /// 3. This flag requires that the original execution plan only have ops with
+        /// valid registrations (and not 'dummy' custom ops like with Flex).
+        /// WARNING: This feature is experimental and subject to change.
+        /// </remarks>
+        RequirePropagatedShapes = 2,
+
+        /// <summary>
+        /// This flag can be used by delegates to request per-operator profiling. If a
+        /// node is a delegate node, this flag will be checked before profiling. If
+        /// set, then the node will not be profiled. The delegate will then add per
+        /// operator information using Profiler::EventType::OPERATOR_INVOKE_EVENT and
+        /// the results will appear in the operator-wise Profiling section and not in
+        /// the Delegate internal section.
+        /// </summary>
+        PerOperatorProfiling = 4
+    }
+    public unsafe struct TfLiteDelegate 
+    {
+        public void* data_;
+        public void* Prepare;
+        public void* CopyFromBufferHandle;
+        public void* CopyToBufferHandle;
+        public void* FreeBufferHandle;
+        public TfLiteDelegateFlags flags;
+        public void* opaque_delegate_builder;
+    }
     public struct TfLiteOpaqueDelegate { }
     #endregion
     public static unsafe class CApi
     {
-#if !UNITY_2022_2_OR_NEWER || UNITY_STANDALONE || UNITY_EDITOR 
-        internal const string TensorFlowLiteLibraryName = "tensorflowlite_c";
+#if !UNITY_2021_2_OR_NEWER || UNITY_STANDALONE || UNITY_EDITOR 
+        internal const string TensorFlowLiteLibraryName = "libtensorflowlite_c";
 #elif UNITY_ANDROID
-        internal const string TensorFlowLiteLibraryName = "tensorflowlite_jni";
+        internal const string TensorFlowLiteLibraryName = "libtensorflowlite_jni";
 #elif UNITY_IOS
         internal const string TensorFlowLiteLibraryName = "__Internal";
 #endif
