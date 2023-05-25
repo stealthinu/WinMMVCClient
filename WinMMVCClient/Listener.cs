@@ -7,6 +7,10 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 using System.Buffers;
 using Microsoft.Extensions.Configuration;
 using NAudio.Utils;
+using DotnetWorld.API.Structs;
+using DotnetWorld.API;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection.Emit;
 
 namespace WinMMVCClient
 {
@@ -31,6 +35,7 @@ namespace WinMMVCClient
         public double MicVolumeAdjust { get; private set; }
 
         private OnnxConverter onnxConverter;
+        private SinGenerator sinGenerator;
         private readonly WasapiCapture waveIn;
         private WasapiOut waveOut;
         //private readonly WaveIn waveIn;
@@ -91,6 +96,7 @@ namespace WinMMVCClient
 
             var modelFilePath = conf["path:model"];
             onnxConverter = new OnnxConverter(modelFilePath, conf);
+            sinGenerator = new SinGenerator();
 
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
             speakerWaveProvider.DiscardOnBufferOverflow = true;
@@ -141,8 +147,10 @@ namespace WinMMVCClient
                 prevWavBuffer.AsSpan().CopyTo(wavBuffer); // prevWavBufferとnewWavBufferをつなげてwavBufferを作る
                 newWavBuffer.AsSpan().CopyTo(wavBuffer.AsSpan()[prevWavBuffer.Length..]);
                 newWavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // newWavBufferの最後をprevWavBufferとして保持する
+                var f0 = F0EstimationDio(wavBuffer);
+                var (sin, d0, d1, d2, d3) = sinGenerator.MakeSinD(f0);
                 MakeSpectrogram(wavBuffer, specs);
-                var transWav = onnxConverter.Infer(specs, SidSrc, SidTgt);
+                var transWav = onnxConverter.Infer(specs, sin, d0, d1, d2, d3, SidSrc, SidTgt);
                 transWav.AsSpan()[disposeConv1dSize..^disposeConv1dSize].CopyTo(disposedWav); // 前後の劣化してる部分を削除
                 OverlapMerge(disposedWav, prevTransWav, overlappedWav); // 頭をオーバーラップして最後を削って返す
                 disposedWav.AsSpan()[^prevTransWav.Length..].CopyTo(prevTransWav); // 変換後音声の最後をOverlapMerge用にprevTransWavとして保持する
@@ -225,6 +233,34 @@ namespace WinMMVCClient
                 bytes[i * 2 + 1] = vals[1];
             }
             return bytes;
+        }
+
+        public ReadOnlySpan<float> F0EstimationDio(float[] floatWav, int sampleRate = 24000, int hopSize = 128)
+        {
+            // TODO: 関数内でのメモリアロケーションを無くす
+            // TODO: Pitch推定をclassにして他の推定方法をすぐに試せるようにする
+            double[] wav = Array.ConvertAll(floatWav, x => (double)x);
+
+            double framePeriod = (double)hopSize / (double)sampleRate * 1000.0; // 1要素大きくなるが先頭要素が必ず"0"になってしまうので1要素大きくてちょうど良い
+            var option = new DioOption();
+            Core.InitializeDioOption(option);
+            option.frame_period = framePeriod;
+            option.speed = 1;
+            option.f0_floor = 71.0;
+            option.allowed_range = 0.1;
+
+            var f0Length = Core.GetSamplesForDIO(sampleRate, wav.Length, framePeriod);
+            var f0 = new double[f0Length];
+            var time_axis = new double[f0Length];
+            double[] refined_f0 = new double[f0Length];
+
+            Core.Dio(wav, wav.Length, sampleRate, option, time_axis, f0);
+            Core.StoneMask(wav, wav.Length, sampleRate, time_axis, f0, f0Length, refined_f0);
+
+            float[] floatF0 = Array.ConvertAll(refined_f0, x => (float)x);
+            ReadOnlySpan<float> trimedF0 = floatF0.AsSpan().Slice(start: 1); // 先頭要素が必ず"0"になってしまうので削る
+
+            return trimedF0;
         }
     }
 }
