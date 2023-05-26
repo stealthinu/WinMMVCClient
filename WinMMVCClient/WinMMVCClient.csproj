@@ -18,6 +18,7 @@
     <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.13.1" />
     <PackageReference Include="Microsoft.ML.OnnxTransformer" Version="2.0.0" />
     <PackageReference Include="NAudio" Version="2.1.0" />
+    <PackageReference Include="NumSharp" Version="0.30.0" />
   </ItemGroup>
 
 </Project>

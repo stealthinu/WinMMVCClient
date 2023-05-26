@@ -104,7 +104,7 @@ namespace WinMMVCClient
             noiseAmp = _noiseAmp;
         }
 
-        public ReadOnlySpan<float> GenerateSignal(ReadOnlySpan<float> f0, float f0Scale = 1.0f)
+        public static ReadOnlySpan<float> GenerateSignal(ReadOnlySpan<float> f0, float f0Scale = 1.0f)
         {
             // return self.sinusoid(f0) * f0_scale
             var signal = Sinusoid(f0);
@@ -115,7 +115,7 @@ namespace WinMMVCClient
             return signal;
         }
 
-        public float[] Sinusoid(ReadOnlySpan<float> f0)
+        public static float[] Sinusoid(ReadOnlySpan<float> f0)
         {
             /*
             """Calculate sine signals.
