@@ -2,10 +2,43 @@ namespace WinMMVCClient
 {
     public class SinGenerator
     {
-        int sampleRate = 24000;
+        int specsLength = 0;
         float[] denseFactors = new float[] { 0.5f, 1.0f, 4.0f, 8.0f };
         int[] upsampleScales = new int[] { 8, 4, 2, 2 };
-        SignalGenerator signalGenerator = new SignalGenerator();
+        int sampleRate = 24000;
+        int hopSize = 128;
+        float sineAmp = 0.1f;
+        float noiseAmp = 0.003f;
+        float[] sin;
+        float[][] d;
+        SignalGenerator signalGenerator = new SignalGenerator(4800);
+
+        public SinGenerator(int _specsLength = 42, float[] _denseFactors = null, int[] _upsampleScales = null, int _sampleRate = 24000, int _hopSize = 128, float _sineAmp = 0.1f, float _noiseAmp = 0.003f)
+        {
+            sampleRate = _sampleRate;
+            hopSize = _hopSize;
+            sineAmp = _sineAmp;
+            noiseAmp = _noiseAmp;
+
+            specsLength = _specsLength;
+            if (_denseFactors != null)
+            {
+                denseFactors= _denseFactors;
+            }
+            if (_upsampleScales != null)
+            {
+                upsampleScales = _upsampleScales;
+            }
+
+            d = new float[upsampleScales.Length][];
+            int upsampleScale = 1;
+            for (int i = 0; i < upsampleScales.Length; i++)
+            {
+                upsampleScale *= upsampleScales[i];
+                d[i] = new float[specsLength * upsampleScale];
+            }
+            sin = new float[specsLength * upsampleScale];
+        }
 
         public (float[] sin, float[] d0, float[] d1, float[] d2, float[] d3) MakeSinD(ReadOnlySpan<float> f0)
         {
@@ -26,13 +59,6 @@ namespace WinMMVCClient
 
                 return in_batch, dfs_batch
             */
-            int specsLength = f0.Length;
-            float[] sin = new float[specsLength * 8 * 4 * 2 * 2];
-            float[][] d = new float[4][];
-            d[0]  = new float[specsLength * 8];
-            d[1]  = new float[specsLength * 8 * 4];
-            d[2]  = new float[specsLength * 8 * 4 * 2];
-            d[3]  = new float[specsLength * 8 * 4 * 2 * 2];
             int upsampleScale = 1;
             for (int i = 0; i < denseFactors.Length; i++)
             {
@@ -105,13 +131,16 @@ namespace WinMMVCClient
                 noise_amp(float): Noise amplitude for NSF-based sine generation.
         */
 
+        int lastIndex = -1; // Index to get the lastPhase
         int sampleRate = 24000;
         int hopSize = 128;
         float sineAmp = 0.1f;
         float noiseAmp = 0.003f;
+        float lastPhase = 0.0f;
 
-        public SignalGenerator(int _sampleRate = 24000, int _hopSize = 128, float _sineAmp = 0.1f, float _noiseAmp = 0.003f)
+        public SignalGenerator(int _lastIndex = -1, int _sampleRate = 24000, int _hopSize = 128, float _sineAmp = 0.1f, float _noiseAmp = 0.003f)
         {
+            lastIndex = _lastIndex;
             sampleRate = _sampleRate;
             hopSize = _hopSize;
             sineAmp = _sineAmp;
@@ -125,23 +154,33 @@ namespace WinMMVCClient
             return signal;
         }
 
-        public ReadOnlySpan<float> Sinusoid(ReadOnlySpan<float> f0)
+        public ReadOnlySpan<float> Sinusoid(ReadOnlySpan<float> f0, float? phase = null)
         {
             int outputLength = f0.Length * hopSize;
             float[] sine = new float[outputLength];
+            if (phase != null)
+            {
+                lastPhase = (float)phase;
+            }
+            var startPhase = lastPhase;
+            var _lastIndex = lastIndex >= 0 ? lastIndex : outputLength + lastIndex;
 
-            var rand = new Random();
             float radious = 0;
             for (int i = 0; i < outputLength; i++)
             {
                 var (vuv, rad) = GetInterpolatedVuvAndRadious(f0, i);
                 radious += rad;
-                sine[i] = vuv * MathF.Sin(radious * 2.0f * MathF.PI) * sineAmp;
-
+                sine[i] = vuv * MathF.Sin((radious + startPhase) * 2.0f * MathF.PI) * sineAmp;
                 if (noiseAmp > 0)
                 {
                     var noise = Randn() * (vuv * noiseAmp + (1.0f - vuv) * noiseAmp / 3.0f);
                     sine[i] += noise;
+                }
+
+                // Save the last phase for the next generation
+                if (i == _lastIndex)
+                {
+                    lastPhase = (radious + startPhase) % 1;
                 }
             }
 
@@ -155,9 +194,9 @@ namespace WinMMVCClient
             int nextIndex = index < f0.Length - 1 ? index + 1 : index;
             float t = originalPosition - index;
 
-            var vuv1 = f0[index] > 0 ? 1.0f : 0;
+            var vuv1 = f0[index] > 0 ? 1 : 0;
             var rad1 = f0[index] / sampleRate;
-            var vuv2 = f0[nextIndex] > 0 ? 1.0f : 0;
+            var vuv2 = f0[nextIndex] > 0 ? 1 : 0;
             var rad2 = f0[nextIndex] / sampleRate;
 
             var vuv = vuv1 * (1 - t) + vuv2 * t;
