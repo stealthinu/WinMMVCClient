@@ -147,7 +147,7 @@ namespace WinMMVCClient
                 prevWavBuffer.AsSpan().CopyTo(wavBuffer); // prevWavBufferとnewWavBufferをつなげてwavBufferを作る
                 newWavBuffer.AsSpan().CopyTo(wavBuffer.AsSpan()[prevWavBuffer.Length..]);
                 newWavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // newWavBufferの最後をprevWavBufferとして保持する
-                var f0 = F0EstimationDio(wavBuffer);
+                var f0 = AdjustPitch(F0EstimationDio(wavBuffer), 2.0f);
                 var (sin, d0, d1, d2, d3) = sinGenerator.MakeSinD(f0);
                 MakeSpectrogram(wavBuffer, specs);
                 var transWav = onnxConverter.Infer(specs, sin, d0, d1, d2, d3, SidSrc, SidTgt);
@@ -241,6 +241,8 @@ namespace WinMMVCClient
             // TODO: Pitch推定をclassにして他の推定方法をすぐに試せるようにする
             double[] wav = Array.ConvertAll(floatWav, x => (double)x);
 
+            var wavSpecs = wav.Length / HopSize;
+            var trancatedWavSpecs = wavSpecs - truncationSpecs * 2 + 1; // paddingせずにSpec算出できる数
             double framePeriod = (double)hopSize / (double)sampleRate * 1000.0; // 1要素大きくなるが先頭要素が必ず"0"になってしまうので1要素大きくてちょうど良い
             var option = new DioOption();
             Core.InitializeDioOption(option);
@@ -258,9 +260,24 @@ namespace WinMMVCClient
             Core.StoneMask(wav, wav.Length, sampleRate, time_axis, f0, f0Length, refined_f0);
 
             float[] floatF0 = Array.ConvertAll(refined_f0, x => (float)x);
-            ReadOnlySpan<float> trimedF0 = floatF0.AsSpan().Slice(start: 1); // 先頭要素が必ず"0"になってしまうので削る
+            // 先頭要素が必ず"0"になる分(1) 前から(truncationSpecs - 1) 後から(truncationSpecs) 削る 例:46->42
+            var sliceStart = 1 + truncationSpecs - 1; // 
+            var sliceLength = floatF0.Length - sliceStart - truncationSpecs;
+            ReadOnlySpan<float> trimedF0 = floatF0.AsSpan().Slice(sliceStart, sliceLength) ; 
 
             return trimedF0;
+        }
+
+        public static float[] AdjustPitch(ReadOnlySpan<float> f0, float f0Scale)
+        {
+            float[] result = new float[f0.Length];
+
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = f0[i] * f0Scale;
+            }
+
+            return result;
         }
     }
 }

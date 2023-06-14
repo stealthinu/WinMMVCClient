@@ -1,5 +1,3 @@
-using NumSharp;
-
 namespace WinMMVCClient
 {
     public class SinGenerator
@@ -28,22 +26,25 @@ namespace WinMMVCClient
 
                 return in_batch, dfs_batch
             */
-            float[] sin = new float[42 * 8 * 4 * 2 * 2];
-            float[] d0 = new float[42 * 8];
-            float[] d1 = new float[42 * 8 * 4];
-            float[] d2 = new float[42 * 8 * 4 * 2];
-            float[] d3 = new float[42 * 8 * 4 * 2 * 2];
+            int specsLength = f0.Length;
+            float[] sin = new float[specsLength * 8 * 4 * 2 * 2];
+            float[][] d = new float[4][];
+            d[0]  = new float[specsLength * 8];
+            d[1]  = new float[specsLength * 8 * 4];
+            d[2]  = new float[specsLength * 8 * 4 * 2];
+            d[3]  = new float[specsLength * 8 * 4 * 2 * 2];
+            int upsampleScale = 1;
             for (int i = 0; i < denseFactors.Length; i++)
             {
                 var dilatedTensor = DilatedFactor(f0, sampleRate, denseFactors[i]);
-                //result = [torch.stack([dilated_tensor for _ in range(us)], -1).reshape(dilated_tensor.shape[0], -1)]
-                //dfs_batch.append(torch.cat(result, dim = 0).unsqueeze(1))
+                upsampleScale *= upsampleScales[i]; // x8, x32, x64, x128
+                StretchArray(dilatedTensor, upsampleScale).CopyTo(d[i]);
             }
             signalGenerator.GenerateSignal(f0).CopyTo(sin);
-            return (sin, d0, d1, d2, d3);
+            return (sin, d[0], d[1], d[2], d[3]);
         }
 
-        public float[] DilatedFactor(ReadOnlySpan<float> f0, int sampleRate, float denseFactor)
+        public static ReadOnlySpan<float> DilatedFactor(ReadOnlySpan<float> f0, int sampleRate, float denseFactor)
         {
             /*
             def dilated_factor(batch_f0, fs, dense_factor):
@@ -77,6 +78,19 @@ namespace WinMMVCClient
 
             return dilatedFactors;
         }
+
+        public static ReadOnlySpan<float> StretchArray(ReadOnlySpan<float> array, int repeatTimes)
+        {
+            float[] result = new float[array.Length * repeatTimes];
+            for (int i = 0; i < array.Length; i++)
+            {
+                for (int j = 0; j < repeatTimes; j++)
+                {
+                    result[i * repeatTimes + j] = array[i];
+                }
+            }
+            return result;
+        }
     }
 
     public class SignalGenerator
@@ -104,18 +118,63 @@ namespace WinMMVCClient
             noiseAmp = _noiseAmp;
         }
 
-        public static ReadOnlySpan<float> GenerateSignal(ReadOnlySpan<float> f0, float f0Scale = 1.0f)
+        public ReadOnlySpan<float> GenerateSignal(ReadOnlySpan<float> f0)
         {
             // return self.sinusoid(f0) * f0_scale
             var signal = Sinusoid(f0);
-            for (var i = 0; i < signal.Length; i++)
-            {
-                signal[i] *= f0Scale;
-            }
             return signal;
         }
 
-        public static float[] Sinusoid(ReadOnlySpan<float> f0)
+        public ReadOnlySpan<float> Sinusoid(ReadOnlySpan<float> f0)
+        {
+            int outputLength = f0.Length * hopSize;
+            float[] sine = new float[outputLength];
+
+            var rand = new Random();
+            float radious = 0;
+            for (int i = 0; i < outputLength; i++)
+            {
+                var (vuv, rad) = GetInterpolatedVuvAndRadious(f0, i);
+                radious += rad;
+                sine[i] = vuv * MathF.Sin(radious * 2.0f * MathF.PI) * sineAmp;
+
+                if (noiseAmp > 0)
+                {
+                    var noise = Randn() * (vuv * noiseAmp + (1.0f - vuv) * noiseAmp / 3.0f);
+                    sine[i] += noise;
+                }
+            }
+
+            return sine;
+        }
+
+        private (float vuv, float rad) GetInterpolatedVuvAndRadious(ReadOnlySpan<float> f0, int i)
+        {
+            float originalPosition = (float)i / hopSize;
+            int index = (int)Math.Floor(originalPosition);
+            int nextIndex = index < f0.Length - 1 ? index + 1 : index;
+            float t = originalPosition - index;
+
+            var vuv1 = f0[index] > 0 ? 1.0f : 0;
+            var rad1 = f0[index] / sampleRate;
+            var vuv2 = f0[nextIndex] > 0 ? 1.0f : 0;
+            var rad2 = f0[nextIndex] / sampleRate;
+
+            var vuv = vuv1 * (1 - t) + vuv2 * t;
+            var rad = (rad1 * (1 - t) + rad2 * t) % 1;
+
+            return (vuv, rad);
+        }
+
+        public static float Randn()
+        {
+            // standard normal distribution random number
+            Random rand = new Random();
+            float result = (float)(Math.Sqrt(-2.0 * Math.Log(rand.NextDouble())) * Math.Sin(2.0 * Math.PI * rand.NextDouble()));
+            return result;
+        }
+
+        public ReadOnlySpan<float> SinusoidArray(ReadOnlySpan<float> f0)
         {
             /*
             """Calculate sine signals.
@@ -138,14 +197,23 @@ namespace WinMMVCClient
 
             return sine
              */
-            return new float[f0.Length];
+            var vuv = InterpolateLinear(GreaterThanZero(f0), hopSize);
+            var radious = DivByScalarAndGetFraction(InterpolateLinear(f0, hopSize), sampleRate);
+            var sine = MulWithScalar(MulArrays(ApplySin(MulWithScalar(CumSum(radious), 2.0f * MathF.PI)), vuv), sineAmp);
+
+            if (noiseAmp > 0)
+            {
+                var noiseAmpAdjusted = AddArrays(MulWithScalar(vuv, noiseAmp), MulWithScalar(SubFromScalar(1.0f, vuv), noiseAmp / 3.0f));
+                var noise = MulArrays(RandnArray(f0.Length * hopSize), noiseAmpAdjusted);
+                sine = AddArrays(sine, noise);
+            }
+
+            return sine;
         }
 
-        public static float[] InterpolateLinear(float[] input, int scale)
+        public static float[] InterpolateLinear(ReadOnlySpan<float> input, int scale)
         {
-            /*
-             * floatの配列をscale倍して間を線形補間する
-             */
+            // floatの配列をscale倍して間を線形補間する
             int inputLength = input.Length;
             int outputLength = inputLength * scale;
 
@@ -167,6 +235,137 @@ namespace WinMMVCClient
             }
 
             return output;
+        }
+
+        public static float[] ApplySin(ReadOnlySpan<float> array)
+        {
+            float[] result = new float[array.Length];
+
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = MathF.Sin(array[i]);
+            }
+
+            return result;
+        }
+
+        public static float[] RandnArray(int length)
+        {
+            float[] result = new float[length];
+            Random rand = new Random();
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = (float)(Math.Sqrt(-2.0 * Math.Log(rand.NextDouble())) * Math.Sin(2.0 * Math.PI * rand.NextDouble()));
+            }
+            return result;
+        }
+
+        public static float[] AddArrays(ReadOnlySpan<float> array1, ReadOnlySpan<float> array2)
+        {
+            if (array1.Length != array2.Length)
+            {
+                throw new ArgumentException("The arrays must have the same length.");
+            }
+
+            float[] result = new float[array1.Length];
+
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = array1[i] + array2[i];
+            }
+
+            return result;
+        }
+
+        public static float[] MulArrays(ReadOnlySpan<float> array1, ReadOnlySpan<float> array2)
+        {
+            if (array1.Length != array2.Length)
+            {
+                throw new ArgumentException("The arrays must have the same length.");
+            }
+
+            float[] result = new float[array1.Length];
+
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = array1[i] * array2[i];
+            }
+
+            return result;
+        }
+
+        public static float[] MulWithScalar(ReadOnlySpan<float> array, float scalar)
+        {
+            float[] result = new float[array.Length];
+
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = array[i] * scalar;
+            }
+
+            return result;
+        }
+
+        public static float[] CumSum(ReadOnlySpan<float> array)
+        {
+            float[] result = new float[array.Length];
+            float sum = 0;
+
+            for (int i = 0; i < result.Length; i++)
+            {
+                sum += array[i];
+                result[i] = sum;
+            }
+
+            return result;
+        }
+
+        public static float[] DivByScalarAndGetFraction(ReadOnlySpan<float> array, int scalar)
+        {
+            float[] result = new float[array.Length];
+
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = array[i] / scalar - (int)(array[i] / scalar);
+            }
+
+            return result;
+        }
+
+        public static float[] SubFromScalar(float scalar, ReadOnlySpan<float> array)
+        {
+            float[] result = new float[array.Length];
+
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = scalar - array[i];
+            }
+
+            return result;
+        }
+
+        public static float[] OnesLike(ReadOnlySpan<float> array)
+        {
+            float[] result = new float[array.Length];
+
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = 1.0f;
+            }
+
+            return result;
+        }
+
+        public static float[] GreaterThanZero(ReadOnlySpan<float> array)
+        {
+            float[] result = new float[array.Length];
+
+            for (int i = 0; i < array.Length; i++)
+            {
+                result[i] = array[i] > 0 ? 1.0f : 0;
+            }
+
+            return result;
         }
     }
 
