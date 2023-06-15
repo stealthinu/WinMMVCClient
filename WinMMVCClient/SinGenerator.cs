@@ -11,7 +11,7 @@ namespace WinMMVCClient
         float noiseAmp = 0.003f;
         float[] sin;
         float[][] d;
-        SignalGenerator signalGenerator = new SignalGenerator(4800);
+        SignalGenerator signalGenerator = new SignalGenerator(4800); // delay_flames
 
         public SinGenerator(int _specsLength = 42, float[] _denseFactors = null, int[] _upsampleScales = null, int _sampleRate = 24000, int _hopSize = 128, float _sineAmp = 0.1f, float _noiseAmp = 0.003f)
         {

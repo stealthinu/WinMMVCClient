@@ -12,7 +12,6 @@ namespace WinMMVCClient
         private MMDevice outputDevice;
         private Converter converter;
         public IConfiguration conf { get; private set; }
-        public IConfiguration hps { get; private set; }
 
         public MainForm()
         {
@@ -20,8 +19,6 @@ namespace WinMMVCClient
             string rootPath = System.AppDomain.CurrentDomain.BaseDirectory;
             var confFilePath = Path.Combine(rootPath, @"..\conf\myprofile.conf");
             conf = new ConfigurationBuilder().AddJsonFile(confFilePath).Build();
-            var hpsFilePath = conf["path:json"];
-            hps = new ConfigurationBuilder().AddJsonFile(hpsFilePath).Build();
             SetupInputOutputComboBox();
             SetupVoiceListBox();
         }
@@ -34,7 +31,7 @@ namespace WinMMVCClient
             outputDevice = (MMDevice)OutputComboBox.SelectedItem;
 
             converter?.Dispose();
-            converter = new Converter(inputDevice, outputDevice, conf, hps);
+            converter = new Converter(inputDevice, outputDevice, conf);
             converter.Start();
         }
 

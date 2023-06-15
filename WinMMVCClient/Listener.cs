@@ -41,6 +41,8 @@ namespace WinMMVCClient
         //private readonly WaveIn waveIn;
         //private WaveOut waveOut;
         private BufferedWaveProvider speakerWaveProvider;
+        private IConfiguration hps;
+        private Dictionary<int, Correspondence> correspondenceDict;
 
         private readonly List<float> audioBuffer;
         private float[] newWavBuffer;
@@ -58,8 +60,13 @@ namespace WinMMVCClient
         private int disposeConv1dSize;
         private int stftM;
 
-        public Converter(MMDevice mic, MMDevice speaker, IConfiguration conf, IConfiguration hps)
+        public Converter(MMDevice mic, MMDevice speaker, IConfiguration conf)
         {
+            var hpsFilePath = conf["path:json"];
+            hps = new ConfigurationBuilder().AddJsonFile(hpsFilePath).Build();
+            var correspondenceFilePath = conf["path:correspondence"];
+            correspondenceDict = CorrespondenceDictReader.ReadDataFromFile(correspondenceFilePath);
+
             SampleRate = hps.GetValue<int>("data:sampling_rate");
             HopSize = hps.GetValue<int>("data:hop_length");
             WinSize = hps.GetValue<int>("data:win_length");
@@ -147,7 +154,8 @@ namespace WinMMVCClient
                 prevWavBuffer.AsSpan().CopyTo(wavBuffer); // prevWavBufferとnewWavBufferをつなげてwavBufferを作る
                 newWavBuffer.AsSpan().CopyTo(wavBuffer.AsSpan()[prevWavBuffer.Length..]);
                 newWavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // newWavBufferの最後をprevWavBufferとして保持する
-                var f0 = AdjustPitch(F0EstimationDio(wavBuffer), 2.0f);
+                var f0Scale = GetF0Scale(SidSrc, SidTgt);
+                var f0 = AdjustPitch(F0EstimationDio(wavBuffer), f0Scale);
                 var (sin, d0, d1, d2, d3) = sinGenerator.MakeSinD(f0);
                 MakeSpectrogram(wavBuffer, specs);
                 var transWav = onnxConverter.Infer(specs, sin, d0, d1, d2, d3, SidSrc, SidTgt);
@@ -159,6 +167,14 @@ namespace WinMMVCClient
                 AmplitudeFrac = wavBuffer.Max();
                 TotalSamples += wavBuffer.Length;
             }
+        }
+
+        private float GetF0Scale(int  sid_src, int sid_target)
+        {
+            var srcF0 = correspondenceDict[sid_src].F0;
+            var targetF0 = correspondenceDict[sid_target].F0;
+            var f0Scale = targetF0 / srcF0;
+            return f0Scale;
         }
 
         private void OverlapMerge(float[] nowWav, float[] prevWav, float[] overlappedWav)
