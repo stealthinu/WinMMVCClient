@@ -64,8 +64,6 @@ namespace WinMMVCClient
         {
             var hpsFilePath = conf["path:json"];
             hps = new ConfigurationBuilder().AddJsonFile(hpsFilePath).Build();
-            var correspondenceFilePath = conf["path:correspondence"];
-            correspondenceDict = CorrespondenceDictReader.ReadDataFromFile(correspondenceFilePath);
 
             SampleRate = hps.GetValue<int>("data:sampling_rate");
             HopSize = hps.GetValue<int>("data:hop_length");
@@ -74,13 +72,9 @@ namespace WinMMVCClient
 
             SidSrc = conf.GetValue<int>("vc_conf:source_id");
             SidTgt = conf.GetValue<int>("vc_conf:target_id");
-            var srcF0 = correspondenceDict[SidSrc].F0;
-            foreach (var correspondence in correspondenceDict.Values)
-            {
-                var targetF0 = correspondence.F0;
-                var semitonesDifference = PitchUtils.GetSemitonesDifference(srcF0, targetF0);
-                correspondence.AdjustSemitones = semitonesDifference;
-            }
+            var correspondenceFilePath = conf["path:correspondence"];
+            correspondenceDict = CorrespondenceDictReader.ReadDataFromFile(correspondenceFilePath, SidSrc);
+
             var micVolumeAdjustDB = conf.GetValue<double>("vc_conf:mic_volume_adjust");
             MicVolumeAdjust = Math.Pow(10.0, micVolumeAdjustDB / 20.0); // dB値を倍率に変換
             SegmentSize = conf.GetValue<int>("vc_conf:delay_flames");
@@ -181,8 +175,8 @@ namespace WinMMVCClient
             // 歌う用途を考えて、半音階毎で一番近い倍率を取得する
             var srcF0 = correspondenceDict[sid_src].F0;
             var targetF0 = correspondenceDict[sid_target].F0;
-            var semitonesDifference = PitchUtils.GetSemitonesDifference(srcF0, targetF0);
-            var f0Scale = PitchUtils.GetF0Scale(semitonesDifference);
+            var semitoneDifference = PitchUtils.GetSemitoneDifference(srcF0, targetF0);
+            var f0Scale = PitchUtils.GetF0Scale(semitoneDifference);
             return f0Scale;
         }
 

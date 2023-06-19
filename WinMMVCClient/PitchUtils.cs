@@ -10,7 +10,7 @@ namespace WinMMVCClient
         // The twelfth root of two.
         private static readonly float HalfStepRatio = MathF.Pow(2.0f, 1.0f / 12.0f);
 
-        public static int GetSemitonesDifference(float sourceFrequency, float targetFrequency)
+        public static int GetSemitoneDifference(float sourceFrequency, float targetFrequency)
         {
             var targetStepsFromRef = MathF.Log(targetFrequency / ReferenceFrequency, HalfStepRatio);
             var sourceStepsFromRef = MathF.Log(sourceFrequency / ReferenceFrequency, HalfStepRatio);
