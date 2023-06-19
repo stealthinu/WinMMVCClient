@@ -34,6 +34,7 @@ namespace WinMMVCClient
         public int MaxSample { get; private set; }
         public int MicVolumeAdjustDB { get; private set; }
         public double MicVolumeAdjust { get; private set; }
+        public int PitchAdjust { get; private set; }
 
         private OnnxConverter onnxConverter;
         private SinGenerator sinGenerator;
@@ -78,6 +79,7 @@ namespace WinMMVCClient
 
             MicVolumeAdjustDB = conf.GetValue<int>("vc_conf:mic_volume_adjust");
             MicVolumeAdjust = Math.Pow(10.0, MicVolumeAdjustDB / 20.0); // dB値を倍率に変換
+            PitchAdjust = conf.GetValue<int>("vc_conf:pitch_adjust");
             SegmentSize = conf.GetValue<int>("vc_conf:delay_flames");
             SpecChannels = WinSize / 2; // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256
             OverlapSize = conf.GetValue<int>("vc_conf:overlap");
@@ -166,7 +168,7 @@ namespace WinMMVCClient
                 prevWavBuffer.AsSpan().CopyTo(wavBuffer); // prevWavBufferとnewWavBufferをつなげてwavBufferを作る
                 newWavBuffer.AsSpan().CopyTo(wavBuffer.AsSpan()[prevWavBuffer.Length..]);
                 newWavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // newWavBufferの最後をprevWavBufferとして保持する
-                var f0Scale = PitchUtils.GetF0Scale(correspondenceDict[SidTgt].AdjustSemitones);
+                var f0Scale = PitchUtils.GetF0Scale(correspondenceDict[SidTgt].AdjustSemitones + PitchAdjust);
                 var f0 = AdjustPitch(F0EstimationDio(wavBuffer), f0Scale);
                 var (sin, d0, d1, d2, d3) = sinGenerator.MakeSinD(f0);
                 MakeSpectrogram(wavBuffer, specs);
