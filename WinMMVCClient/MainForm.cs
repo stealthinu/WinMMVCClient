@@ -32,6 +32,7 @@ namespace WinMMVCClient
 
             converter?.Dispose();
             converter = new Converter(inputDevice, outputDevice, conf);
+            MicVolumeAdjustTrackBar.Value = converter.MicVolumeAdjustDB;
             converter.Start();
         }
 
@@ -140,18 +141,28 @@ namespace WinMMVCClient
         private void TargetListBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             Voice targetVoice = (Voice)TargetListBox.SelectedItem;
-            converter?.SetTargetId(targetVoice.ID);
+            if (converter != null)
+            {
+                converter.SetTargetId(targetVoice.ID);
+                PitchAdjustTrackBar.Value = converter.GetPitchAdjust();
+            }
         }
 
-        private void SettingButton_Click(object sender, EventArgs e)
+        private void PitchAdjustTrackBar_Scroll(object sender, EventArgs e)
         {
-
+            var adjustValue = PitchAdjustTrackBar.Value;
+            converter?.SetPitchAdjust(adjustValue);
         }
 
-        private void MicVolumeAdjustTrackBar_ValueChanged(object sender, EventArgs e)
+        public void SetMicVolumeAdjustTrackBar(int volume)
+        {
+            MicVolumeAdjustTrackBar.Value = volume;
+        }
+
+        private void MicVolumeAdjustTrackBar_Scroll(object sender, EventArgs e)
         {
             // -20: -10dB, 20: +20dB
-            var adjustValue = MicVolumeAdjustTrackBar.Value / 2.0;
+            var adjustValue = MicVolumeAdjustTrackBar.Value;
             converter?.SetMicVolumeAdjust(adjustValue);
         }
     }

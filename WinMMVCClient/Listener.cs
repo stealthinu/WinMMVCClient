@@ -32,6 +32,7 @@ namespace WinMMVCClient
         public int DisposeConv1dSpecs { get; private set; }
         public int BytesPerSample { get; private set; }
         public int MaxSample { get; private set; }
+        public int MicVolumeAdjustDB { get; private set; }
         public double MicVolumeAdjust { get; private set; }
 
         private OnnxConverter onnxConverter;
@@ -73,10 +74,10 @@ namespace WinMMVCClient
             SidSrc = conf.GetValue<int>("vc_conf:source_id");
             SidTgt = conf.GetValue<int>("vc_conf:target_id");
             var correspondenceFilePath = conf["path:correspondence"];
-            correspondenceDict = CorrespondenceDictReader.ReadDataFromFile(correspondenceFilePath, SidSrc);
+            correspondenceDict = CorrespondenceDictReader.ReadDataFromFile(correspondenceFilePath, SidSrc); // 話者毎の音程補正値を取得
 
-            var micVolumeAdjustDB = conf.GetValue<double>("vc_conf:mic_volume_adjust");
-            MicVolumeAdjust = Math.Pow(10.0, micVolumeAdjustDB / 20.0); // dB値を倍率に変換
+            MicVolumeAdjustDB = conf.GetValue<int>("vc_conf:mic_volume_adjust");
+            MicVolumeAdjust = Math.Pow(10.0, MicVolumeAdjustDB / 20.0); // dB値を倍率に変換
             SegmentSize = conf.GetValue<int>("vc_conf:delay_flames");
             SpecChannels = WinSize / 2; // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256
             OverlapSize = conf.GetValue<int>("vc_conf:overlap");
@@ -139,10 +140,20 @@ namespace WinMMVCClient
             SidTgt = id;
         }
 
-        public void SetMicVolumeAdjust(double volume)
+        public void SetMicVolumeAdjust(int volume)
         {
-            var micVolumeAdjustDB = volume;
-            MicVolumeAdjust = Math.Pow(10.0, micVolumeAdjustDB / 20.0);
+            MicVolumeAdjustDB = volume;
+            MicVolumeAdjust = Math.Pow(10.0, MicVolumeAdjustDB / 20.0);
+        }
+
+        public void SetPitchAdjust(int semitone)
+        {
+            correspondenceDict[SidTgt].AdjustSemitones = semitone;
+        }
+
+        public int GetPitchAdjust()
+        {
+            return correspondenceDict[SidTgt].AdjustSemitones;
         }
 
         private void OnNewAudioData(object sender, WaveInEventArgs args)
@@ -168,16 +179,6 @@ namespace WinMMVCClient
                 AmplitudeFrac = wavBuffer.Max();
                 TotalSamples += wavBuffer.Length;
             }
-        }
-
-        private float GetF0Scale(int  sid_src, int sid_target)
-        {
-            // 歌う用途を考えて、半音階毎で一番近い倍率を取得する
-            var srcF0 = correspondenceDict[sid_src].F0;
-            var targetF0 = correspondenceDict[sid_target].F0;
-            var semitoneDifference = PitchUtils.GetSemitoneDifference(srcF0, targetF0);
-            var f0Scale = PitchUtils.GetF0Scale(semitoneDifference);
-            return f0Scale;
         }
 
         private void OverlapMerge(float[] nowWav, float[] prevWav, float[] overlappedWav)
