@@ -43,7 +43,7 @@ namespace WinMMVCClient
         //private readonly WaveIn waveIn;
         //private WaveOut waveOut;
         private BufferedWaveProvider speakerWaveProvider;
-        private IConfiguration hps;
+        private IConfiguration? hps;
         private Dictionary<int, Correspondence> correspondenceDict;
 
         private readonly List<float> audioBuffer;
@@ -55,7 +55,7 @@ namespace WinMMVCClient
         private float[] overlappedWav;
         private float[,] specs;
         private int truncationSpecs;
-        private int segmentSpecs;
+        private int? segmentSpecs;
         private int prevStftWavSize;
         private int stftWavSize;
         private int stftSpecs;
@@ -65,6 +65,13 @@ namespace WinMMVCClient
         public Converter(MMDevice mic, MMDevice speaker, IConfiguration conf)
         {
             var hpsFilePath = conf["path:json"];
+            var correspondenceFilePath = conf["path:correspondence"];
+            var modelFilePath = conf["path:model"];
+            if (hpsFilePath == null || correspondenceFilePath == null || modelFilePath == null)
+            {
+                throw new ArgumentException("Configuration file is not specified.");
+            }
+
             hps = new ConfigurationBuilder().AddJsonFile(hpsFilePath).Build();
 
             SampleRate = hps.GetValue<int>("data:sampling_rate");
@@ -74,7 +81,6 @@ namespace WinMMVCClient
 
             SidSrc = conf.GetValue<int>("vc_conf:source_id");
             SidTgt = conf.GetValue<int>("vc_conf:target_id");
-            var correspondenceFilePath = conf["path:correspondence"];
             correspondenceDict = CorrespondenceDictReader.ReadDataFromFile(correspondenceFilePath, SidSrc); // 話者毎の音程補正値を取得
 
             MicVolumeAdjustDB = conf.GetValue<int>("vc_conf:mic_volume_adjust");
@@ -91,7 +97,7 @@ namespace WinMMVCClient
             disposeConv1dSize = DisposeConv1dSpecs * HopSize;
             BytesPerSample = 2;
             Latency = conf.GetValue<int>("vc_conf:latency");
-            WaveFormat waveFormat = new WaveFormat(SampleRate, 1); // 24K mono
+            WaveFormat? waveFormat = new WaveFormat(SampleRate, 1); // 24K mono
             BytesPerSample = waveFormat.BitsPerSample / 8;
 
             newWavBuffer = Enumerable.Repeat<float>(0.0f, SegmentSize).ToArray();
@@ -105,7 +111,6 @@ namespace WinMMVCClient
             overlappedWav = new float[SegmentSize];
             audioBuffer = new List<float>(); // TODO: 溢れないためListにしているけど固定長バッファにして溢れたら捨てるようにしたほうがよさそう
 
-            var modelFilePath = conf["path:model"];
             onnxConverter = new OnnxConverter(modelFilePath, conf);
             sinGenerator = new SinGenerator();
 
@@ -201,7 +206,7 @@ namespace WinMMVCClient
         {
             // 4096を128毎で257chのspectrogramを作る
             // NAudioのFFTを利用する　そのためComplexもNAudioのものを利用
-            NAudio.Dsp.Complex[] complexWav = ArrayPool<NAudio.Dsp.Complex>.Shared.Rent(WinSize);
+            NAudio.Dsp.Complex[]? complexWav = ArrayPool<NAudio.Dsp.Complex>.Shared.Rent(WinSize);
             var wavSpecs = wav.Length / HopSize;
             var trancatedWavSpecs = wavSpecs - truncationSpecs * 2 + 1; // paddingせずにSpec算出できる数
             for (int n = 0; n < trancatedWavSpecs; n++)
@@ -236,7 +241,7 @@ namespace WinMMVCClient
 
         private float[] ConvertAndScaleBytesToFloatArray(byte[] bytesBuffer, int newSampleCount, float scale)
         {
-            float[] buffer = new float[newSampleCount];
+            float[]? buffer = new float[newSampleCount];
             for (int i = 0; i < newSampleCount; i++)
             {
                 buffer[i] = BitConverter.ToInt16(bytesBuffer, i * BytesPerSample) * scale;
@@ -246,11 +251,11 @@ namespace WinMMVCClient
 
         private byte[] FloatToWavArray(float[] floatArray, float amplify)
         {
-            byte[] bytes = new byte[floatArray.Length * BytesPerSample];
+            byte[]? bytes = new byte[floatArray.Length * BytesPerSample];
             for (int i = 0; i < floatArray.Length; i++)
             {
                 Int16 val = (Int16)(floatArray[i] * amplify);
-                byte[] vals = BitConverter.GetBytes(val);
+                byte[]? vals = BitConverter.GetBytes(val);
                 bytes[i * 2 + 0] = vals[0];
                 bytes[i * 2 + 1] = vals[1];
             }
@@ -261,7 +266,7 @@ namespace WinMMVCClient
         {
             // TODO: 関数内でのメモリアロケーションを無くす
             // TODO: Pitch推定をclassにして他の推定方法をすぐに試せるようにする
-            double[] wav = Array.ConvertAll(floatWav, x => (double)x);
+            double[]? wav = Array.ConvertAll(floatWav, x => (double)x);
 
             var wavSpecs = wav.Length / HopSize;
             var trancatedWavSpecs = wavSpecs - truncationSpecs * 2 + 1; // paddingせずにSpec算出できる数
@@ -276,12 +281,12 @@ namespace WinMMVCClient
             var f0Length = Core.GetSamplesForDIO(sampleRate, wav.Length, framePeriod);
             var f0 = new double[f0Length];
             var time_axis = new double[f0Length];
-            double[] refined_f0 = new double[f0Length];
+            double[]? refined_f0 = new double[f0Length];
 
             Core.Dio(wav, wav.Length, sampleRate, option, time_axis, f0);
             Core.StoneMask(wav, wav.Length, sampleRate, time_axis, f0, f0Length, refined_f0);
 
-            float[] floatF0 = Array.ConvertAll(refined_f0, x => (float)x);
+            float[]? floatF0 = Array.ConvertAll(refined_f0, x => (float)x);
             // 先頭要素が必ず"0"になる分(1) 前から(truncationSpecs - 1) 後から(truncationSpecs) 削る 例:46->42
             var sliceStart = 1 + truncationSpecs - 1; // 
             var sliceLength = floatF0.Length - sliceStart - truncationSpecs;
@@ -292,7 +297,7 @@ namespace WinMMVCClient
 
         public static float[] AdjustPitch(ReadOnlySpan<float> f0, float f0Scale)
         {
-            float[] result = new float[f0.Length];
+            float[]? result = new float[f0.Length];
 
             for (int i = 0; i < result.Length; i++)
             {

@@ -6,19 +6,17 @@ namespace WinMMVCClient
 {
     public partial class MainForm : Form
     {
-        private MMDeviceCollection inputs;
-        private MMDeviceCollection outputs;
-        private MMDevice inputDevice;
-        private MMDevice outputDevice;
-        private Converter converter;
+        private MMDeviceCollection? inputs;
+        private MMDeviceCollection? outputs;
+        private MMDevice? inputDevice;
+        private MMDevice? outputDevice;
+        private Converter? converter;
         public IConfiguration conf { get; private set; }
 
-        public MainForm()
+        public MainForm(IConfiguration _conf)
         {
             InitializeComponent();
-            string rootPath = System.AppDomain.CurrentDomain.BaseDirectory;
-            var confFilePath = Path.Combine(rootPath, @"..\conf\myprofile.conf");
-            conf = new ConfigurationBuilder().AddJsonFile(confFilePath).Build();
+            conf = _conf;
             SetupInputOutputComboBox();
             SetupVoiceListBox();
         }
@@ -54,8 +52,8 @@ namespace WinMMVCClient
 
         private void SetupInputOutputComboBox()
         {
-            string inputName = conf["device:input_device1"];
-            string outputName = conf["device:output_device"];
+            string? inputName = conf["device:input_device1"];
+            string? outputName = conf["device:output_device"];
             inputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
             var inputsArray = inputs.ToArray();
             outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
@@ -140,8 +138,8 @@ namespace WinMMVCClient
 
         private void TargetListBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            Voice targetVoice = (Voice)TargetListBox.SelectedItem;
-            if (converter != null)
+            Voice? targetVoice = TargetListBox.SelectedItem as Voice;
+            if (converter != null && targetVoice != null)
             {
                 converter.SetTargetId(targetVoice.ID);
                 PitchAdjustTrackBar.Value = converter.GetPitchAdjust();
