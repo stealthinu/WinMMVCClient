@@ -5,7 +5,7 @@ namespace WinMMVCClient
 {
     internal static class Program
     {
-        public static IConfiguration conf { get; private set; }
+        public static IConfiguration? conf { get; private set; }
 
         [STAThread]
         static void Main()

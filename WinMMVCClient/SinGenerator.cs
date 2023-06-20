@@ -4,7 +4,7 @@ namespace WinMMVCClient
     {
         int specsLength = 0;
         float[] denseFactors = new float[] { 0.5f, 1.0f, 4.0f, 8.0f };
-        int[] upsampleScales = new int[] { 8, 4, 2, 2 };
+        int[] upsampleScales = new int[] { 8, 4, 2, 2 }; // model.upsample_rate
         int sampleRate = 24000;
         int hopSize = 128;
         float sineAmp = 0.1f;
@@ -60,14 +60,27 @@ namespace WinMMVCClient
                 return in_batch, dfs_batch
             */
             int upsampleScale = 1;
-            for (int i = 0; i < denseFactors.Length; i++)
+            for (int i = 0; i < upsampleScales.Length; i++)
             {
-                var dilatedTensor = DilatedFactor(f0, sampleRate, denseFactors[i]);
                 upsampleScale *= upsampleScales[i]; // x8, x32, x64, x128
-                StretchArray(dilatedTensor, upsampleScale).CopyTo(d[i]);
+                StretchedDilatedFactor(f0, sampleRate, denseFactors[i], upsampleScale).CopyTo(d[i]);
             }
             signalGenerator.GenerateSignal(f0).CopyTo(sin);
             return (sin, d[0], d[1], d[2], d[3]);
+        }
+
+        public static ReadOnlySpan<float> StretchedDilatedFactor(ReadOnlySpan<float> f0, int sampleRate, float denseFactor, int stretchFactor)
+        {
+            float[] result = new float[f0.Length * stretchFactor];
+            for (int i = 0; i < f0.Length; i++)
+            {
+                var dilatedFactor = (f0[i] == 0) ? 1 : sampleRate / denseFactor / f0[i];
+                for (int j = 0; j < stretchFactor; j++)
+                {
+                    result[i * stretchFactor + j] = dilatedFactor;
+                }
+            }
+            return result;
         }
 
         public static ReadOnlySpan<float> DilatedFactor(ReadOnlySpan<float> f0, int sampleRate, float denseFactor)
@@ -94,12 +107,14 @@ namespace WinMMVCClient
             var dilatedFactors = new float[f0.Length];
             for (int i = 0; i < f0.Length; i++)
             {
-                var _f0 = f0[i];
-                if (_f0 == 0)
+                if (f0[i] != 0)
                 {
-                    _f0 = sampleRate / denseFactor;
+                    dilatedFactors[i] = sampleRate / denseFactor / f0[i];
                 }
-                dilatedFactors[i] = sampleRate / denseFactor / _f0;
+                else
+                {
+                    dilatedFactors[i] = 1;
+                }
             }
 
             return dilatedFactors;
