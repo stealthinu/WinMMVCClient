@@ -68,6 +68,9 @@ namespace WinMMVCClient
             opts.EnableMemoryPattern = false;
             // ※下記はCUDA用の指定
             //var opts = SessionOptions.MakeSessionOptionWithCudaProvider(0); // CUDAでGPU_ID=0指定
+            // ※下記はOpenVINO(JS.OnnxRuntime.OpenVINO)用の指定
+            //var opts = new SessionOptions();
+            ////opts.AppendExecutionProvider_OpenVINO("CPU_FP32"); // 'CPU_FP32', 'GPU_FP32', 'GPU_FP16', 'MYRIAD_FP16', 'VAD-M_FP16', 'VAD-F_FP16'
             session = new InferenceSession(modelFilePath, opts);
         }
 
