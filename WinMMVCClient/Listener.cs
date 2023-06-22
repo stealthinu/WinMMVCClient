@@ -35,6 +35,8 @@ namespace WinMMVCClient
         public int MicVolumeAdjustDB { get; private set; }
         public double MicVolumeAdjust { get; private set; }
         public int PitchAdjust { get; private set; }
+        public int[] UpsampleRates { get; private set; }
+        public float[] DenseFactors { get; private set; }
 
         private OnnxConverter onnxConverter;
         private SinGenerator sinGenerator;
@@ -78,6 +80,18 @@ namespace WinMMVCClient
             HopSize = hps.GetValue<int>("data:hop_length");
             WinSize = hps.GetValue<int>("data:win_length");
             MaxWavValue = hps.GetValue<float>("data:max_wav_value");
+            var upsampleRatesSection = hps.GetSection("model:upsample_rates");
+            UpsampleRates = upsampleRatesSection.GetChildren().Select(x => int.Parse(x.Value)).ToArray();
+            var denseFactorsSection = hps.GetSection("model:dense_factors");
+            if (!denseFactorsSection.Exists())
+            {
+                // v1.5のTrainerではdense_factorsはコード決め打ちで設定ファイルになかったので特別処理　
+                DenseFactors = new float[] { 0.5f, 1.0f, 4.0f, 8.0f };
+            }
+            else
+            {
+                DenseFactors = denseFactorsSection.GetChildren().Select(x => float.Parse(x.Value)).ToArray();
+            }
 
             SidSrc = conf.GetValue<int>("vc_conf:source_id");
             SidTgt = conf.GetValue<int>("vc_conf:target_id");
@@ -112,7 +126,7 @@ namespace WinMMVCClient
             audioBuffer = new List<float>(); // TODO: 溢れないためListにしているけど固定長バッファにして溢れたら捨てるようにしたほうがよさそう
 
             onnxConverter = new OnnxConverter(modelFilePath, conf);
-            sinGenerator = new SinGenerator();
+            sinGenerator = new SinGenerator(specsLength: stftSpecs, denseFactors: DenseFactors, upsampleScales: UpsampleRates, delayFrames: SegmentSize, sampleRate: SampleRate, hopSize: HopSize, sineAmp: 0.1f, noiseAmp: 0.003f);
 
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
             speakerWaveProvider.DiscardOnBufferOverflow = true;

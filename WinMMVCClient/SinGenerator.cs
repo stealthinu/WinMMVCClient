@@ -2,39 +2,35 @@ namespace WinMMVCClient
 {
     public class SinGenerator
     {
-        int specsLength = 0;
-        float[] denseFactors = new float[] { 0.5f, 1.0f, 4.0f, 8.0f };
-        int[] upsampleScales = new int[] { 8, 4, 2, 2 }; // model.upsample_rate
-        int sampleRate = 24000;
-        int hopSize = 128;
-        float sineAmp = 0.1f;
-        float noiseAmp = 0.003f;
+        int specsLength;
+        float[] denseFactors;
+        int[] upsampleScales;
+        int delayFrames;
+        int sampleRate;
+        int hopSize;
+        float sineAmp;
+        float noiseAmp;
         float[] sin;
         float[][] d;
-        SignalGenerator signalGenerator = new SignalGenerator(4800); // delay_flames
+        SignalGenerator signalGenerator;
 
-        public SinGenerator(int _specsLength = 42, float[] _denseFactors = null, int[] _upsampleScales = null, int _sampleRate = 24000, int _hopSize = 128, float _sineAmp = 0.1f, float _noiseAmp = 0.003f)
+        public SinGenerator(int specsLength, float[] denseFactors, int[] upsampleScales, int delayFrames, int sampleRate, int hopSize, float sineAmp, float noiseAmp)
         {
-            sampleRate = _sampleRate;
-            hopSize = _hopSize;
-            sineAmp = _sineAmp;
-            noiseAmp = _noiseAmp;
+            this.sampleRate = sampleRate;
+            this.hopSize = hopSize;
+            this.sineAmp = sineAmp;
+            this.noiseAmp = noiseAmp;
+            this.delayFrames = delayFrames;
+            this.specsLength = specsLength;
+            this.denseFactors = denseFactors;
+            this.upsampleScales = upsampleScales;
+            this.signalGenerator = new SignalGenerator(delayFrames);
 
-            specsLength = _specsLength;
-            if (_denseFactors != null)
-            {
-                denseFactors= _denseFactors;
-            }
-            if (_upsampleScales != null)
-            {
-                upsampleScales = _upsampleScales;
-            }
-
-            d = new float[upsampleScales.Length][];
+            d = new float[this.upsampleScales.Length][];
             int upsampleScale = 1;
-            for (int i = 0; i < upsampleScales.Length; i++)
+            for (int i = 0; i < this.upsampleScales.Length; i++)
             {
-                upsampleScale *= upsampleScales[i];
+                upsampleScale *= this.upsampleScales[i];
                 d[i] = new float[specsLength * upsampleScale];
             }
             sin = new float[specsLength * upsampleScale];
