@@ -18,6 +18,7 @@ namespace WinMMVCClient
     {
         public int SidSrc { get; set; }
         public int SidTgt { get; set; }
+        public int MicVolumeAdjustDB { get; set; }
         public double AmplitudeFrac { get; private set; }
         public double TotalSamples { get; private set; }
         public int SampleRate { get; private set; }
@@ -32,7 +33,6 @@ namespace WinMMVCClient
         public int DisposeConv1dSpecs { get; private set; }
         public int BytesPerSample { get; private set; }
         public int MaxSample { get; private set; }
-        public int MicVolumeAdjustDB { get; private set; }
         public double MicVolumeAdjust { get; private set; }
         public int PitchAdjust { get; private set; }
         public int[] UpsampleRates { get; private set; }

@@ -12,6 +12,9 @@ namespace WinMMVCClient
         private MMDevice? outputDevice;
         private Converter? converter;
         public IConfiguration conf { get; private set; }
+        private int TargetId;
+        private int MicVolumeAdjust;
+        private int PitchAdjust;
 
         public MainForm(IConfiguration _conf)
         {
@@ -19,6 +22,7 @@ namespace WinMMVCClient
             conf = _conf;
             SetupInputOutputComboBox();
             SetupVoiceListBox();
+            SetupAdjustTrackBar();
         }
 
         private void Start()
@@ -30,7 +34,9 @@ namespace WinMMVCClient
 
             converter?.Dispose();
             converter = new Converter(inputDevice, outputDevice, conf);
-            MicVolumeAdjustTrackBar.Value = converter.MicVolumeAdjustDB;
+            converter.SetMicVolumeAdjust(MicVolumeAdjust);
+            converter.SetTargetId(TargetId);
+            PitchAdjustTrackBar.Value = converter.GetPitchAdjust();
             converter.Start();
         }
 
@@ -109,6 +115,7 @@ namespace WinMMVCClient
 
         private void SetupVoiceListBox()
         {
+            TargetId = Convert.ToInt32(conf["vc_conf:target_id"]);
             TargetListBox.Items.Clear();
             var voiceList = new List<Voice>();
             var list = conf.GetSection("others:voice_list");
@@ -125,10 +132,9 @@ namespace WinMMVCClient
             }
             voiceList.Sort((a, b) => a.Index - b.Index);
             TargetListBox.DataSource = voiceList;
-            var targetId = Convert.ToInt32(conf["vc_conf:target_id"]);
             for (int i = 0; i < voiceList.Count; i++)
             {
-                if (voiceList[i].ID == targetId)
+                if (voiceList[i].ID == TargetId)
                 {
                     TargetListBox.SelectedIndex = i;
                     break;
@@ -146,15 +152,18 @@ namespace WinMMVCClient
             }
         }
 
+        private void SetupAdjustTrackBar()
+        {
+            MicVolumeAdjust = Convert.ToInt32(conf["vc_conf:mic_volume_adjust"]);
+            PitchAdjust = Convert.ToInt32(conf["vc_conf:pitch_adjust"]);
+            MicVolumeAdjustTrackBar.Value = MicVolumeAdjust;
+            PitchAdjustTrackBar.Value = PitchAdjust;
+        }
+
         private void PitchAdjustTrackBar_Scroll(object sender, EventArgs e)
         {
             var adjustValue = PitchAdjustTrackBar.Value;
             converter?.SetPitchAdjust(adjustValue);
-        }
-
-        public void SetMicVolumeAdjustTrackBar(int volume)
-        {
-            MicVolumeAdjustTrackBar.Value = volume;
         }
 
         private void MicVolumeAdjustTrackBar_Scroll(object sender, EventArgs e)
