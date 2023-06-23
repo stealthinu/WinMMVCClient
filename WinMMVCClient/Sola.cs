@@ -28,7 +28,7 @@
             var audioSubset = audio[ .. ^(crossfadeFrame + solaSearchFrame)];
             var corNom = Convolve(audioSubset, flippedSolaBuffer);
             var corDen = CalculateRootEnergy(audioSubset, crossfadeFrame);
-            int solaOffset = ArgMax(corNom);
+            int solaOffset = CalculateSolaOffset(corNom, corDen);
 
             int solaEnd = solaOffset + blockFrame;
             var outputWav = audio[solaOffset .. solaEnd];
@@ -56,6 +56,25 @@
                 outputWav[i] = inputWav[i] * strength + crossWav[i];
             }
             return outputWav;
+        }
+
+        public static int CalculateSolaOffset(ReadOnlySpan<float> corNom, float corDen)
+        {
+            int idx = -1;
+            float max = float.MinValue;
+            float scaleFactor = 1 / corDen;
+
+            for (int i = 0; i < corNom.Length; i++)
+            {
+                float scaledValue = corNom[i] * scaleFactor;
+                if (scaledValue > max)
+                {
+                    max = scaledValue;
+                    idx = i;
+                }
+            }
+
+            return idx;
         }
 
         public static ReadOnlySpan<float> MulWithScalar(ReadOnlySpan<float> array, float scalar)
