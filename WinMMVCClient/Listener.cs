@@ -40,6 +40,7 @@ namespace WinMMVCClient
 
         private OnnxConverter onnxConverter;
         private SinGenerator sinGenerator;
+        private Sola sola;
         private readonly WasapiCapture waveIn;
         private WasapiOut waveOut;
         //private readonly WaveIn waveIn;
@@ -127,6 +128,7 @@ namespace WinMMVCClient
 
             onnxConverter = new OnnxConverter(modelFilePath, conf);
             sinGenerator = new SinGenerator(specsLength: stftSpecs, denseFactors: DenseFactors, upsampleScales: UpsampleRates, delayFrames: SegmentSize, sampleRate: SampleRate, hopSize: HopSize, sineAmp: 0.1f, noiseAmp: 0.003f);
+            sola = new Sola(SampleRate, SegmentSize, OverlapSize);
 
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
             speakerWaveProvider.DiscardOnBufferOverflow = true;
@@ -193,7 +195,8 @@ namespace WinMMVCClient
                 MakeSpectrogram(wavBuffer, specs);
                 var transWav = onnxConverter.Infer(specs, sin, d0, d1, d2, d3, SidSrc, SidTgt);
                 transWav.AsSpan()[disposeConv1dSize..^disposeConv1dSize].CopyTo(disposedWav); // 前後の劣化してる部分を削除
-                OverlapMerge(disposedWav, prevTransWav, overlappedWav); // 頭をオーバーラップして最後を削って返す
+                sola.Convert(disposedWav).CopyTo(overlappedWav);
+                //OverlapMerge(disposedWav, prevTransWav, overlappedWav); // 頭をオーバーラップして最後を削って返す
                 disposedWav.AsSpan()[^prevTransWav.Length..].CopyTo(prevTransWav); // 変換後音声の最後をOverlapMerge用にprevTransWavとして保持する
                 var convertedBytes = FloatToWavArray(overlappedWav, MaxWavValue);
                 speakerWaveProvider.AddSamples(convertedBytes, 0, convertedBytes.Length);
