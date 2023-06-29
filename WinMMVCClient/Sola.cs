@@ -3,16 +3,16 @@
     class Sola
     {
         private int blockFrameSize; // input audio block frame size
-        private int crossfadeFrameSize;  // crossfade frame size
-        private int solaSearchFrameSize; // length which to search for a match in the SOLA
+        private int crossfadeSize;  // crossfade size
+        private int solaSearchSize; // length which to search for a match in the SOLA
         private float[] solaBuffer;
 
         public Sola(int SamplingRate, int blockFrameSize, int crossfadeOverlapSize)
         {
             this.blockFrameSize = blockFrameSize;
-            this.crossfadeFrameSize = crossfadeOverlapSize;
-            this.solaSearchFrameSize = (int)(0.012 * SamplingRate);
-            solaBuffer = new float[crossfadeOverlapSize];
+            this.crossfadeSize = crossfadeOverlapSize;
+            this.solaSearchSize = (int)(0.012 * SamplingRate);
+            solaBuffer = new float[solaSearchSize];
         }
 
         public ReadOnlySpan<float> Convert(ReadOnlySpan<float> audio)
@@ -20,15 +20,15 @@
             //int audioOffset =  crossfadeFrameSize + solaSearchFrameSize + blockFrameSize;
             //var audio = audioIn[^audioOffset .. ];
 
-            var crossfadeRegion = audio[ .. (crossfadeFrameSize + solaSearchFrameSize)];
-            var corNom = CalculateNominalCorrelation(crossfadeRegion, solaBuffer);
-            var corDen = CalculateRootEnergy(crossfadeRegion, crossfadeFrameSize);
+            var solaSearchRegion = audio[ .. solaSearchSize];
+            var corNom = CalculateNominalCorrelation(solaSearchRegion, solaBuffer);
+            var corDen = CalculateRootEnergy(solaSearchRegion, solaSearchSize);
             int solaOffset = CalculateSolaOffset(corNom, corDen);
 
-            int solaEnd = solaOffset + blockFrameSize;
-            var solaWav = audio[solaOffset .. solaEnd];
-            var outputWav = CrossfadeOverlap(solaWav, solaBuffer);
-            audio[^crossfadeFrameSize .. ].CopyTo(solaBuffer);
+            int frameEnd = solaOffset + blockFrameSize;
+            var solaExtractedWav = audio[solaOffset .. frameEnd];
+            var outputWav = CrossfadeOverlap(solaExtractedWav, solaBuffer);
+            audio[^solaSearchSize .. ].CopyTo(solaBuffer);
 
             return outputWav;
         }
