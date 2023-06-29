@@ -193,7 +193,12 @@ namespace WinMMVCClient
                 var f0 = AdjustPitch(F0EstimationDio(wavBuffer), f0Scale);
                 var (sin, d0, d1, d2, d3) = sinGenerator.MakeSinD(f0);
                 MakeSpectrogram(wavBuffer, specs);
-                var transWav = onnxConverter.Infer(specs, sin, d0, d1, d2, d3, SidSrc, SidTgt);
+                //var transWav = onnxConverter.Infer(specs, sin, d0, d1, d2, d3, SidSrc, SidTgt);
+                var transWav = wavBuffer[HopSize .. ^(HopSize * 2)]; // MakeSpectrogramで前後1+2個分減る
+                for (int i = 0; i < transWav.Length; i++)
+                {
+                    transWav[i] = transWav[i] / MaxWavValue;
+                }
                 transWav.AsSpan()[disposeConv1dSize..^disposeConv1dSize].CopyTo(disposedWav); // 前後の劣化してる部分を削除
                 sola.Convert(disposedWav).CopyTo(overlappedWav);
                 //OverlapMerge(disposedWav, prevTransWav, overlappedWav); // 頭をオーバーラップして最後を削って返す
