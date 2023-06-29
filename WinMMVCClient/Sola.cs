@@ -2,17 +2,17 @@
 {
     class Sola
     {
-        private int blockFrameSize; // input audio block frame size
-        private int crossfadeSize;  // crossfade size
-        private int solaSearchSize; // length which to search for a match in the SOLA
-        private float[] solaBuffer;
+        private int blockFrameSize; // input audio blockFrameSize
+        private int crossfadeSize;  // crossfadeSize = SOLA search region size
+        private int solaSearchFrameSize;
+        private float[] solaPrevBuffer;
 
-        public Sola(int SamplingRate, int blockFrameSize, int crossfadeOverlapSize)
+        public Sola(int SamplingRate, int blockFrameSize, int crossfadeSize)
         {
             this.blockFrameSize = blockFrameSize;
-            this.crossfadeSize = crossfadeOverlapSize;
-            this.solaSearchSize = (int)(0.012 * SamplingRate);
-            solaBuffer = new float[solaSearchSize];
+            this.crossfadeSize = crossfadeSize;
+            this.solaSearchFrameSize = (int)(0.01 * SamplingRate); // Convolution size = 100Hz
+            solaPrevBuffer = new float[crossfadeSize];
         }
 
         public ReadOnlySpan<float> Convert(ReadOnlySpan<float> audio)
@@ -20,17 +20,16 @@
             //int audioOffset =  crossfadeFrameSize + solaSearchFrameSize + blockFrameSize;
             //var audio = audioIn[^audioOffset .. ];
 
-            var solaSearchRegion = audio[ .. solaSearchSize];
-            var corNom = CalculateNominalCorrelation(solaSearchRegion, solaBuffer);
-            var corDen = CalculateRootEnergy(solaSearchRegion, solaSearchSize);
+            var solaSearchRegion = audio[ .. (crossfadeSize + solaSearchFrameSize)];
+            var corNom = Convolve(solaSearchRegion, solaPrevBuffer);
+            var corDen = CalculateRootEnergy(solaSearchRegion, crossfadeSize);
             int solaOffset = CalculateSolaOffset(corNom, corDen);
 
-            int frameEnd = solaOffset + blockFrameSize;
-            var solaExtractedWav = audio[solaOffset .. frameEnd];
-            var outputWav = CrossfadeOverlap(solaExtractedWav, solaBuffer);
-            audio[^solaSearchSize .. ].CopyTo(solaBuffer);
+            var solaExtractedWav = audio[solaOffset .. (solaOffset + blockFrameSize)];
+            //var outputWav = CrossfadeOverlap(solaExtractedWav, solaPrevBuffer);
+            audio[^crossfadeSize .. ].CopyTo(solaPrevBuffer);
 
-            return outputWav;
+            return solaExtractedWav;
         }
 
         public static ReadOnlySpan<float> CrossfadeOverlap(ReadOnlySpan<float> curWav, ReadOnlySpan<float> prevWav)
@@ -63,7 +62,7 @@
                 throw new ArgumentException("corNom.Length != corDen.Length");
             }
 
-            int idx = -1;
+            int idx = 0; // return 0 if not match
             float max = float.MinValue;
 
             for (int i = 0; i < corNom.Length; i++)
@@ -79,54 +78,26 @@
             return idx;
         }
 
-        public static ReadOnlySpan<float> CalculateNominalCorrelation(ReadOnlySpan<float> a, ReadOnlySpan<float> b)
-        {
-            // flippedSolaBuffer = solaBuffer.Reverse().ToArray();
-            // corNom = Convolve(crossfadeRegion, flippedSolaBuffer);
-
-            int n = a.Length;
-            int m = b.Length;
-            if (m == 0 || n < m)
-            {
-                throw new ArgumentException("Input arrays have incompatible sizes.");
-            }
-
-            float[] result = new float[n - m + 1];
-
-            for (int i = 0; i < result.Length; i++)
-            {
-                float sum = 0;
-                for (int j = 0; j < m; j++)
-                {
-                    sum += a[i + j] * b[m - j - 1]; // Reversed b
-                }
-                result[i] = sum;
-            }
-
-            return result;
-        }
-
         public static ReadOnlySpan<float> CalculateRootEnergy(ReadOnlySpan<float> a, int len)
         {
-            // corDen = Convolve(Pow(crossfadeRegion, 2), ones(crossfadeRegion));
+            // corDen = Convolve(Pow(solaSearchRegion, 2), ones(solaSearchRegion));
 
             int n = a.Length;
-            int m = len;
-            if (m == 0 || n < m)
+            if (len == 0 || n < len)
             {
                 throw new ArgumentException("Input arrays have incompatible sizes.");
             }
 
-            float[] result = new float[n - m + 1];
+            float[] result = new float[n - len + 1];
 
             for (int i = 0; i < result.Length; i++)
             {
                 float sum = 0;
-                for (int j = 0; j < m; j++)
+                for (int j = 0; j < len; j++)
                 {
                     sum += MathF.Pow(a[i + j], 2) * 1;
                 }
-                result[i] = sum;
+                result[i] = sum; // MathF.Sqrt(sum)
             }
 
             return result;
