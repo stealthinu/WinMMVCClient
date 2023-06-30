@@ -39,6 +39,7 @@ namespace WinMMVCClient
             this.MicVolumeAdjustLabel = new System.Windows.Forms.Label();
             this.PitchAdjustLabel = new System.Windows.Forms.Label();
             this.PitchAdjustTrackBar = new System.Windows.Forms.TrackBar();
+            this.settingButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.MicVolumeAdjustTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.PitchAdjustTrackBar)).BeginInit();
             this.SuspendLayout();
@@ -147,11 +148,22 @@ namespace WinMMVCClient
             this.PitchAdjustTrackBar.TabIndex = 11;
             this.PitchAdjustTrackBar.Scroll += new System.EventHandler(this.PitchAdjustTrackBar_Scroll);
             // 
+            // settingButton
+            // 
+            this.settingButton.Location = new System.Drawing.Point(176, 516);
+            this.settingButton.Name = "settingButton";
+            this.settingButton.Size = new System.Drawing.Size(94, 29);
+            this.settingButton.TabIndex = 13;
+            this.settingButton.Text = "Setting";
+            this.settingButton.UseVisualStyleBackColor = true;
+            this.settingButton.Click += new System.EventHandler(this.button1_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(325, 513);
+            this.ClientSize = new System.Drawing.Size(325, 562);
+            this.Controls.Add(this.settingButton);
             this.Controls.Add(this.PitchAdjustLabel);
             this.Controls.Add(this.PitchAdjustTrackBar);
             this.Controls.Add(this.MicVolumeAdjustLabel);
@@ -185,5 +197,6 @@ namespace WinMMVCClient
         private Label MicVolumeAdjustLabel;
         private Label PitchAdjustLabel;
         private TrackBar PitchAdjustTrackBar;
+        private Button settingButton;
     }
 }
