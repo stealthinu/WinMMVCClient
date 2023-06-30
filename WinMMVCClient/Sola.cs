@@ -2,53 +2,29 @@
 {
     class Sola
     {
-        private int blockFrameSize; // input audio blockFrameSize
-        private int crossfadeSize;  // crossfadeSize = SOLA search region size
+        private int overlapSize;
         private int solaSearchFrameSize;
-        private float[] solaPrevBuffer;
+        private float[] prevWav;
 
-        public Sola(int SamplingRate, int blockFrameSize, int crossfadeSize)
+        public Sola(int overlapSize = 512, int solaSearchFrameSize = 256)
         {
-            this.blockFrameSize = blockFrameSize;
-            this.crossfadeSize = crossfadeSize;
-            this.solaSearchFrameSize = (int)(0.01 * SamplingRate); // Convolution size = 100Hz
-            solaPrevBuffer = new float[crossfadeSize];
+            this.overlapSize = overlapSize; // solaSearchFrameSize * 2 = 512
+            this.solaSearchFrameSize = solaSearchFrameSize;  // 24000Hz / 100Hz = 240　~= 256
+            prevWav = new float[overlapSize];
         }
 
-        public ReadOnlySpan<float> Convert(ReadOnlySpan<float> audio)
+        public ReadOnlySpan<float> Merge(ReadOnlySpan<float> wav)
         {
-            //int audioOffset =  crossfadeFrameSize + solaSearchFrameSize + blockFrameSize;
-            //var audio = audioIn[^audioOffset .. ];
-
-            var solaSearchRegion = audio[ .. (crossfadeSize + solaSearchFrameSize)];
-            var corNom = Convolve(solaSearchRegion, solaPrevBuffer);
-            var corDen = CalculateRootEnergy(solaSearchRegion, crossfadeSize);
+            var solaSearchRegion = wav[ .. solaSearchFrameSize];
+            var corNom = Convolve(prevWav, solaSearchRegion);
+            var corDen = CalculateRootEnergy(prevWav, solaSearchFrameSize);
             int solaOffset = CalculateSolaOffset(corNom, corDen);
 
-            var solaExtractedWav = audio[solaOffset .. (solaOffset + blockFrameSize)];
-            //var outputWav = CrossfadeOverlap(solaExtractedWav, solaPrevBuffer);
-            audio[^crossfadeSize .. ].CopyTo(solaPrevBuffer);
-
-            return solaExtractedWav;
-        }
-
-        public static ReadOnlySpan<float> CrossfadeOverlap(ReadOnlySpan<float> curWav, ReadOnlySpan<float> prevWav)
-        {
-            if (prevWav.Length > curWav.Length)
-            {
-                throw new ArgumentException("prevWav.Length > curWav.Length");
-            }
-
-            var crossfadeSize = prevWav.Length;
-            float[] outputWav = curWav.ToArray();
-
-            for (int i = 0; i < crossfadeSize; i++)
-            {
-                var percent = i / (float)crossfadeSize;
-                var prevStrength = MathF.Pow(MathF.Cos(percent * 0.5f * MathF.PI), 2);
-                var curStrength = MathF.Pow(MathF.Cos((1 - percent) * 0.5f * MathF.PI), 2);
-                outputWav[i] = prevWav[i] * prevStrength + curWav[i] * curStrength;
-            }
+            var prevSolaMatchRegion = prevWav[solaOffset .. (solaOffset + solaSearchFrameSize)];
+            var crossfadeWav = Crossfade(solaSearchRegion, prevSolaMatchRegion);
+            var solaMergedWav = ConcatSpan(prevWav[ .. solaOffset], crossfadeWav, wav[solaSearchFrameSize .. ]);
+            var outputWav = solaMergedWav[ .. ^(solaOffset + overlapSize)];
+            wav[^(overlapSize + solaOffset) .. ^solaOffset].CopyTo(prevWav);
 
             return outputWav;
         }
@@ -127,32 +103,37 @@
             return result;
         }
 
-        public static ReadOnlySpan<float> MulWithScalar(ReadOnlySpan<float> array, float scalar)
+        public static ReadOnlySpan<float> ConcatSpan(ReadOnlySpan<float> array1, ReadOnlySpan<float> array2, ReadOnlySpan<float> array3)
         {
-            float[] result = new float[array.Length];
+            int totalLength = array1.Length + array2.Length + array3.Length;
+            float[] tempArray = new float[totalLength];
 
-            for (int i = 0; i < result.Length; i++)
-            {
-                result[i] = array[i] * scalar;
-            }
+            array1.CopyTo(tempArray);
+            array2.CopyTo(tempArray.AsSpan(array1.Length));
+            array3.CopyTo(tempArray.AsSpan(array1.Length + array2.Length));
 
-            return result;
+            return tempArray;
         }
 
-        public static int ArgMax(ReadOnlySpan<float> data)
+        public static ReadOnlySpan<float> Crossfade(ReadOnlySpan<float> curWav, ReadOnlySpan<float> prevWav)
         {
-            float max = float.MinValue;
-            int idx = -1;
-            for (int i = 0; i < data.Length; i++)
+            if (prevWav.Length != curWav.Length)
             {
-                if (data[i] > max)
-                {
-                    max = data[i];
-                    idx = i;
-                }
+                throw new ArgumentException("prevWav.Length != curWav.Length");
             }
-            return idx;
-        }
 
+            var crossfadeSize = prevWav.Length;
+            float[] outputWav = curWav.ToArray();
+
+            for (int i = 0; i < crossfadeSize; i++)
+            {
+                var percent = i / (float)crossfadeSize;
+                var prevStrength = MathF.Pow(MathF.Cos(percent * 0.5f * MathF.PI), 2);
+                var curStrength = MathF.Pow(MathF.Cos((1 - percent) * 0.5f * MathF.PI), 2);
+                outputWav[i] = prevWav[i] * prevStrength + curWav[i] * curStrength;
+            }
+
+            return outputWav;
+        }
     }
 }

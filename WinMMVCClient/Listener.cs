@@ -40,6 +40,7 @@ namespace WinMMVCClient
 
         private OnnxConverter onnxConverter;
         private SinGenerator sinGenerator;
+        private CrossfadeOverlap crossfadeOverlap;
         private Sola sola;
         private readonly WasapiCapture waveIn;
         private WasapiOut waveOut;
@@ -126,7 +127,8 @@ namespace WinMMVCClient
 
             onnxConverter = new OnnxConverter(modelFilePath, conf);
             sinGenerator = new SinGenerator(specsLength: stftSpecs, denseFactors: DenseFactors, upsampleScales: UpsampleRates, delayFrames: SegmentSize, sampleRate: SampleRate, hopSize: HopSize, sineAmp: 0.1f, noiseAmp: 0.003f);
-            sola = new Sola(SampleRate, SegmentSize, OverlapSize);
+            sola = new Sola(OverlapSize, 256); // OverlapSize > 256
+            crossfadeOverlap = new CrossfadeOverlap(OverlapSize);
 
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
             speakerWaveProvider.DiscardOnBufferOverflow = true;
@@ -186,54 +188,24 @@ namespace WinMMVCClient
                 // Debug.WriteLine(DateTime.Now.ToString("ss.fff") + $" {audioBuffer.Count} {newWavBuffer.Length} ");
                 prevWavBuffer.AsSpan().CopyTo(wavBuffer); // prevWavBufferとnewWavBufferをつなげてwavBufferを作る
                 newWavBuffer.AsSpan().CopyTo(wavBuffer.AsSpan()[prevWavBuffer.Length..]);
-                newWavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // newWavBufferの最後をprevWavBufferとして保持する
+                wavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // wavBufferの最後をprevWavBufferとして保持する
                 var f0Scale = PitchUtils.GetF0Scale(correspondenceDict[SidTgt].AdjustSemitones + PitchAdjust);
                 var f0 = AdjustPitch(F0EstimationDio(wavBuffer), f0Scale);
                 var (sin, d0, d1, d2, d3) = sinGenerator.MakeSinD(f0);
                 MakeSpectrogram(wavBuffer, specs);
                 var transWav = onnxConverter.Infer(specs, sin, d0, d1, d2, d3, SidSrc, SidTgt);
-                /*
-                var transWav = wavBuffer[HopSize .. ^(HopSize * 2)]; // MakeSpectrogramで前後1+2個分減る
-                for (int i = 0; i < transWav.Length; i++)
-                {
-                    transWav[i] = transWav[i] / MaxWavValue;
-                }
-                */
                 transWav.AsSpan()[disposeConv1dSize..^disposeConv1dSize].CopyTo(disposedWav); // 前後の劣化してる部分を削除
                 // オーバーラップしない
                 //var overlappedWav = disposedWav.AsSpan()[..^OverlapSize];
                 // オーバーラップする
-                var overlappedWav = CrossfadeOverlap(disposedWav, prevTransWav)[..^OverlapSize]; // 頭をオーバーラップして後ろ捨てる
+                //var overlappedWav = crossfadeOverlap.Merge(disposedWav);
                 // SOLA使っていいところを切り出してオーバーラップ
-                //var solaExtracted = sola.Convert(disposedWav); // 既にSOLA検索後にSegmentSizeに切り出し済み
-                //solaExtracted.CopyTo(overlappedWav);
-                disposedWav.AsSpan()[^prevTransWav.Length..].CopyTo(prevTransWav); // 変換後音声の最後をOverlapMerge用にprevTransWavとして保持する
+                var overlappedWav = sola.Merge(disposedWav);
                 var convertedBytes = FloatToWavArray(overlappedWav, MaxWavValue);
                 speakerWaveProvider.AddSamples(convertedBytes, 0, convertedBytes.Length);
                 AmplitudeFrac = wavBuffer.Max();
                 TotalSamples += wavBuffer.Length;
             }
-        }
-
-        public static ReadOnlySpan<float> CrossfadeOverlap(ReadOnlySpan<float> curWav, ReadOnlySpan<float> prevWav)
-        {
-            if (prevWav.Length > curWav.Length)
-            {
-                throw new ArgumentException("prevWav.Length > curWav.Length");
-            }
-
-            var crossfadeSize = prevWav.Length;
-            float[] overlappedWav = curWav.ToArray();
-
-            for (int i = 0; i < crossfadeSize; i++)
-            {
-                var percent = i / (float)crossfadeSize;
-                var curStrength = MathF.Pow(MathF.Sin(percent * 0.5f * MathF.PI), 2); // sin(i * PI/2) ** 2
-                var prevStrength = 1 - curStrength;
-                overlappedWav[i] = prevWav[i] * prevStrength + curWav[i] * curStrength;
-            }
-
-            return overlappedWav;
         }
 
         public void MakeSpectrogram(float[] wav, float[,] specs, float amplify = 0.0390f)
