@@ -33,11 +33,18 @@ namespace WinMMVCClient
             outputDevice = (MMDevice)OutputComboBox.SelectedItem;
 
             converter?.Dispose();
-            converter = new Converter(inputDevice, outputDevice, conf);
-            converter.SetMicVolumeAdjust(MicVolumeAdjust);
-            converter.SetTargetId(TargetId);
-            PitchAdjustTrackBar.Value = converter.GetPitchAdjust();
-            converter.Start();
+            try
+            {
+                converter = new Converter(inputDevice, outputDevice, conf);
+                converter.SetMicVolumeAdjust(MicVolumeAdjust);
+                converter.SetTargetId(TargetId);
+                PitchAdjustTrackBar.Value = converter.GetPitchAdjust();
+                converter.Start();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void Stop()
