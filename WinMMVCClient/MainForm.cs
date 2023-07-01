@@ -23,6 +23,8 @@ namespace WinMMVCClient
             SetupInputOutputComboBox();
             SetupVoiceListBox();
             SetupAdjustTrackBar();
+            StartButton.Enabled = true;
+            StopButton.Enabled = false;
         }
 
         private void Start()
@@ -55,12 +57,16 @@ namespace WinMMVCClient
 
         private void StartButton_Click(object sender, EventArgs e)
         {
+            StartButton.Enabled = false;
+            StopButton.Enabled = true;
             Start();
         }
 
         private void StopButton_Click(object sender, EventArgs e)
         {
             Stop();
+            StartButton.Enabled = true;
+            StopButton.Enabled = false;
         }
 
         private void SetupInputOutputComboBox()
