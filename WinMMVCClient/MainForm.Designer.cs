@@ -40,6 +40,8 @@ namespace WinMMVCClient
             this.PitchAdjustLabel = new System.Windows.Forms.Label();
             this.PitchAdjustTrackBar = new System.Windows.Forms.TrackBar();
             this.settingButton = new System.Windows.Forms.Button();
+            this.micVolumeAdjustTextBox = new System.Windows.Forms.TextBox();
+            this.pitchAdjustTextBox = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.MicVolumeAdjustTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.PitchAdjustTrackBar)).BeginInit();
             this.SuspendLayout();
@@ -47,42 +49,45 @@ namespace WinMMVCClient
             // InputComboBox
             // 
             this.InputComboBox.FormattingEnabled = true;
-            this.InputComboBox.Location = new System.Drawing.Point(72, 5);
+            this.InputComboBox.Location = new System.Drawing.Point(63, 45);
+            this.InputComboBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.InputComboBox.Name = "InputComboBox";
-            this.InputComboBox.Size = new System.Drawing.Size(239, 28);
+            this.InputComboBox.Size = new System.Drawing.Size(210, 23);
             this.InputComboBox.TabIndex = 0;
             // 
             // OutputComboBox
             // 
             this.OutputComboBox.FormattingEnabled = true;
-            this.OutputComboBox.Location = new System.Drawing.Point(72, 40);
+            this.OutputComboBox.Location = new System.Drawing.Point(63, 71);
+            this.OutputComboBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.OutputComboBox.Name = "OutputComboBox";
-            this.OutputComboBox.Size = new System.Drawing.Size(239, 28);
+            this.OutputComboBox.Size = new System.Drawing.Size(210, 23);
             this.OutputComboBox.TabIndex = 1;
             // 
             // InputLabel
             // 
             this.InputLabel.AutoSize = true;
-            this.InputLabel.Location = new System.Drawing.Point(11, 9);
+            this.InputLabel.Location = new System.Drawing.Point(10, 48);
             this.InputLabel.Name = "InputLabel";
-            this.InputLabel.Size = new System.Drawing.Size(43, 20);
+            this.InputLabel.Size = new System.Drawing.Size(35, 15);
             this.InputLabel.TabIndex = 3;
             this.InputLabel.Text = "Input";
             // 
             // OutputLabel
             // 
             this.OutputLabel.AutoSize = true;
-            this.OutputLabel.Location = new System.Drawing.Point(11, 43);
+            this.OutputLabel.Location = new System.Drawing.Point(10, 73);
             this.OutputLabel.Name = "OutputLabel";
-            this.OutputLabel.Size = new System.Drawing.Size(55, 20);
+            this.OutputLabel.Size = new System.Drawing.Size(45, 15);
             this.OutputLabel.TabIndex = 4;
             this.OutputLabel.Text = "Output";
             // 
             // StartButton
             // 
-            this.StartButton.Location = new System.Drawing.Point(11, 459);
+            this.StartButton.Location = new System.Drawing.Point(10, 385);
+            this.StartButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.StartButton.Name = "StartButton";
-            this.StartButton.Size = new System.Drawing.Size(137, 43);
+            this.StartButton.Size = new System.Drawing.Size(120, 32);
             this.StartButton.TabIndex = 5;
             this.StartButton.Text = "Start";
             this.StartButton.UseVisualStyleBackColor = true;
@@ -90,9 +95,10 @@ namespace WinMMVCClient
             // 
             // StopButton
             // 
-            this.StopButton.Location = new System.Drawing.Point(175, 459);
+            this.StopButton.Location = new System.Drawing.Point(153, 385);
+            this.StopButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.StopButton.Name = "StopButton";
-            this.StopButton.Size = new System.Drawing.Size(137, 41);
+            this.StopButton.Size = new System.Drawing.Size(120, 31);
             this.StopButton.TabIndex = 7;
             this.StopButton.Text = "Stop";
             this.StopButton.UseVisualStyleBackColor = true;
@@ -101,68 +107,84 @@ namespace WinMMVCClient
             // TargetListBox
             // 
             this.TargetListBox.FormattingEnabled = true;
-            this.TargetListBox.ItemHeight = 20;
-            this.TargetListBox.Location = new System.Drawing.Point(11, 75);
+            this.TargetListBox.ItemHeight = 15;
+            this.TargetListBox.Location = new System.Drawing.Point(10, 97);
+            this.TargetListBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.TargetListBox.Name = "TargetListBox";
-            this.TargetListBox.Size = new System.Drawing.Size(300, 284);
+            this.TargetListBox.Size = new System.Drawing.Size(263, 214);
             this.TargetListBox.TabIndex = 8;
             this.TargetListBox.SelectedIndexChanged += new System.EventHandler(this.TargetListBox_SelectedIndexChanged);
             // 
             // MicVolumeAdjustTrackBar
             // 
-            this.MicVolumeAdjustTrackBar.Location = new System.Drawing.Point(11, 392);
-            this.MicVolumeAdjustTrackBar.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.MicVolumeAdjustTrackBar.Location = new System.Drawing.Point(10, 335);
             this.MicVolumeAdjustTrackBar.Maximum = 20;
             this.MicVolumeAdjustTrackBar.Minimum = -20;
             this.MicVolumeAdjustTrackBar.Name = "MicVolumeAdjustTrackBar";
-            this.MicVolumeAdjustTrackBar.Size = new System.Drawing.Size(151, 56);
+            this.MicVolumeAdjustTrackBar.Size = new System.Drawing.Size(99, 45);
             this.MicVolumeAdjustTrackBar.TabIndex = 9;
             this.MicVolumeAdjustTrackBar.Scroll += new System.EventHandler(this.MicVolumeAdjustTrackBar_Scroll);
             // 
             // MicVolumeAdjustLabel
             // 
             this.MicVolumeAdjustLabel.AutoSize = true;
-            this.MicVolumeAdjustLabel.Location = new System.Drawing.Point(18, 368);
+            this.MicVolumeAdjustLabel.Location = new System.Drawing.Point(16, 317);
             this.MicVolumeAdjustLabel.Name = "MicVolumeAdjustLabel";
-            this.MicVolumeAdjustLabel.Size = new System.Drawing.Size(130, 20);
+            this.MicVolumeAdjustLabel.Size = new System.Drawing.Size(104, 15);
             this.MicVolumeAdjustLabel.TabIndex = 10;
             this.MicVolumeAdjustLabel.Text = "Mic volume adjust";
             // 
             // PitchAdjustLabel
             // 
             this.PitchAdjustLabel.AutoSize = true;
-            this.PitchAdjustLabel.Location = new System.Drawing.Point(193, 368);
+            this.PitchAdjustLabel.Location = new System.Drawing.Point(169, 317);
             this.PitchAdjustLabel.Name = "PitchAdjustLabel";
-            this.PitchAdjustLabel.Size = new System.Drawing.Size(85, 20);
+            this.PitchAdjustLabel.Size = new System.Drawing.Size(69, 15);
             this.PitchAdjustLabel.TabIndex = 12;
             this.PitchAdjustLabel.Text = "Pitch adjust";
             // 
             // PitchAdjustTrackBar
             // 
-            this.PitchAdjustTrackBar.Location = new System.Drawing.Point(160, 392);
-            this.PitchAdjustTrackBar.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.PitchAdjustTrackBar.Location = new System.Drawing.Point(151, 335);
             this.PitchAdjustTrackBar.Maximum = 20;
             this.PitchAdjustTrackBar.Minimum = -20;
             this.PitchAdjustTrackBar.Name = "PitchAdjustTrackBar";
-            this.PitchAdjustTrackBar.Size = new System.Drawing.Size(151, 56);
+            this.PitchAdjustTrackBar.Size = new System.Drawing.Size(99, 45);
             this.PitchAdjustTrackBar.TabIndex = 11;
             this.PitchAdjustTrackBar.Scroll += new System.EventHandler(this.PitchAdjustTrackBar_Scroll);
             // 
             // settingButton
             // 
-            this.settingButton.Location = new System.Drawing.Point(176, 516);
+            this.settingButton.Location = new System.Drawing.Point(191, 6);
+            this.settingButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.settingButton.Name = "settingButton";
-            this.settingButton.Size = new System.Drawing.Size(94, 29);
+            this.settingButton.Size = new System.Drawing.Size(82, 32);
             this.settingButton.TabIndex = 13;
             this.settingButton.Text = "Setting";
             this.settingButton.UseVisualStyleBackColor = true;
-            this.settingButton.Click += new System.EventHandler(this.button1_Click);
+            this.settingButton.Click += new System.EventHandler(this.settingButton_Click);
+            // 
+            // micVolumeAdjustTextBox
+            // 
+            this.micVolumeAdjustTextBox.Location = new System.Drawing.Point(108, 338);
+            this.micVolumeAdjustTextBox.Name = "micVolumeAdjustTextBox";
+            this.micVolumeAdjustTextBox.Size = new System.Drawing.Size(26, 23);
+            this.micVolumeAdjustTextBox.TabIndex = 14;
+            // 
+            // pitchAdjustTextBox
+            // 
+            this.pitchAdjustTextBox.Location = new System.Drawing.Point(247, 338);
+            this.pitchAdjustTextBox.Name = "pitchAdjustTextBox";
+            this.pitchAdjustTextBox.Size = new System.Drawing.Size(26, 23);
+            this.pitchAdjustTextBox.TabIndex = 15;
             // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(325, 562);
+            this.ClientSize = new System.Drawing.Size(284, 431);
+            this.Controls.Add(this.pitchAdjustTextBox);
+            this.Controls.Add(this.micVolumeAdjustTextBox);
             this.Controls.Add(this.settingButton);
             this.Controls.Add(this.PitchAdjustLabel);
             this.Controls.Add(this.PitchAdjustTrackBar);
@@ -175,6 +197,7 @@ namespace WinMMVCClient
             this.Controls.Add(this.InputLabel);
             this.Controls.Add(this.OutputComboBox);
             this.Controls.Add(this.InputComboBox);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Name = "MainForm";
             this.Text = "MMVC Client";
             ((System.ComponentModel.ISupportInitialize)(this.MicVolumeAdjustTrackBar)).EndInit();
@@ -198,5 +221,7 @@ namespace WinMMVCClient
         private Label PitchAdjustLabel;
         private TrackBar PitchAdjustTrackBar;
         private Button settingButton;
+        private TextBox micVolumeAdjustTextBox;
+        private TextBox pitchAdjustTextBox;
     }
 }

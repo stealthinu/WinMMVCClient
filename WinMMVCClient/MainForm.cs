@@ -170,20 +170,22 @@ namespace WinMMVCClient
         private void PitchAdjustTrackBar_Scroll(object sender, EventArgs e)
         {
             var adjustValue = PitchAdjustTrackBar.Value;
+            pitchAdjustTextBox.Text = adjustValue.ToString();
             converter?.SetPitchAdjust(adjustValue);
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-            var settingsForm = new SettingForm();
-            settingsForm.ShowDialog();
         }
 
         private void MicVolumeAdjustTrackBar_Scroll(object sender, EventArgs e)
         {
             // -20: -10dB, 20: +20dB
             var adjustValue = MicVolumeAdjustTrackBar.Value;
+            micVolumeAdjustTextBox.Text = adjustValue.ToString();
             converter?.SetMicVolumeAdjust(adjustValue);
+        }
+
+        private void settingButton_Click(object sender, EventArgs e)
+        {
+            var settingsForm = new SettingForm();
+            settingsForm.ShowDialog();
         }
     }
 }
