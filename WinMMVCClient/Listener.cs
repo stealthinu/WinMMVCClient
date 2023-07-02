@@ -14,7 +14,7 @@ using System.Reflection.Emit;
 
 namespace WinMMVCClient
 {
-    public class Converter : IDisposable
+    public class Converter
     {
         public int SidSrc { get; set; }
         public int SidTgt { get; set; }
@@ -42,7 +42,7 @@ namespace WinMMVCClient
         private SinGenerator sinGenerator;
         private CrossfadeOverlap crossfadeOverlap;
         private Sola sola;
-        private readonly WasapiCapture waveIn;
+        private WasapiCapture waveIn;
         private WasapiOut waveOut;
         //private readonly WaveIn waveIn;
         //private WaveOut waveOut;
@@ -65,7 +65,7 @@ namespace WinMMVCClient
         private int disposeConv1dSize;
         private int stftM;
 
-        public Converter(MMDevice mic, MMDevice speaker, IConfiguration conf)
+        public Converter(IConfiguration conf)
         {
             var hpsFilePath = conf["path:json"];
             var correspondenceFilePath = conf["path:correspondence"];
@@ -129,7 +129,11 @@ namespace WinMMVCClient
             sinGenerator = new SinGenerator(specsLength: stftSpecs, denseFactors: DenseFactors, upsampleScales: UpsampleRates, delayFrames: SegmentSize, sampleRate: SampleRate, hopSize: HopSize, sineAmp: 0.1f, noiseAmp: 0.003f);
             sola = new Sola(OverlapSize, 256); // OverlapSize > 256
             crossfadeOverlap = new CrossfadeOverlap(OverlapSize);
+        }
 
+        public void InitWaveDevice(MMDevice mic, MMDevice speaker)
+        {
+            WaveFormat? waveFormat = new WaveFormat(SampleRate, 1); // 24K mono
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
             speakerWaveProvider.DiscardOnBufferOverflow = true;
             waveOut = new WasapiOut(speaker, AudioClientShareMode.Exclusive, true, Latency);
@@ -144,18 +148,24 @@ namespace WinMMVCClient
             waveIn.DataAvailable += OnNewAudioData;
         }
 
+        public void DisposeWaveDevice()
+        {
+            waveIn?.StopRecording();
+            waveIn?.Dispose();
+            waveOut?.Stop();
+            waveOut?.Dispose();
+        }
+
         public void Start()
         {
             waveOut.Play();
             waveIn.StartRecording();
         }
 
-        public void Dispose()
+        public void Stop()
         {
             waveIn?.StopRecording();
-            waveIn?.Dispose();
             waveOut?.Stop();
-            waveOut?.Dispose();
         }
 
         public void SetTargetId(int id)

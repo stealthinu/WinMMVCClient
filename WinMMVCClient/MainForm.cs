@@ -16,28 +16,43 @@ namespace WinMMVCClient
         private int MicVolumeAdjust;
         private int PitchAdjust;
 
-        public MainForm(IConfiguration _conf)
+        public MainForm()
         {
             InitializeComponent();
-            conf = _conf;
-            SetupInputOutputComboBox();
-            SetupVoiceListBox();
-            SetupAdjustTrackBar();
-            StartButton.Enabled = true;
-            StopButton.Enabled = false;
+            this.Load += MainForm_Load;
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            try
+            {
+                var builder = new ConfigurationBuilder()
+                    .SetBasePath(Directory.GetCurrentDirectory())
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                conf = builder.Build();
+                converter = new Converter(conf);
+                SetupInputOutputComboBox();
+                SetupVoiceListBox();
+                SetupAdjustTrackBar();
+                StartButton.Enabled = true;
+                StopButton.Enabled = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Initialized error: {ex.Message}", "Error");
+                Application.Exit();
+            }
         }
 
         private void Start()
         {
-            if (!(InputComboBox.SelectedItem is MMDevice && InputComboBox.SelectedItem is MMDevice)) return;
-            FixInputOutputComboBox();
-            inputDevice = (MMDevice)InputComboBox.SelectedItem;
-            outputDevice = (MMDevice)OutputComboBox.SelectedItem;
-
-            converter?.Dispose();
             try
             {
-                converter = new Converter(inputDevice, outputDevice, conf);
+                if (!(InputComboBox.SelectedItem is MMDevice && InputComboBox.SelectedItem is MMDevice)) return;
+                FixInputOutputComboBox();
+                inputDevice = (MMDevice)InputComboBox.SelectedItem;
+                outputDevice = (MMDevice)OutputComboBox.SelectedItem;
+                converter.InitWaveDevice(inputDevice, outputDevice);
                 converter.SetMicVolumeAdjust(MicVolumeAdjust);
                 converter.SetTargetId(TargetId);
                 PitchAdjustTrackBar.Value = converter.GetPitchAdjust();
@@ -45,13 +60,13 @@ namespace WinMMVCClient
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Convert error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void Stop()
         {
-            converter?.Dispose();
+            converter.DisposeWaveDevice();
             UnfixInputOutputComboBox();
         }
 
