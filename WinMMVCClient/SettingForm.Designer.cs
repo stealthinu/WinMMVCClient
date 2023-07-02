@@ -35,9 +35,10 @@
             this.correspondenceFileTextBox = new System.Windows.Forms.TextBox();
             this.correspondenceFileButton = new System.Windows.Forms.Button();
             this.VcGroupBox = new System.Windows.Forms.GroupBox();
-            this.DelayFramesLabel = new System.Windows.Forms.Label();
             this.delayFramesComboBox = new System.Windows.Forms.ComboBox();
+            this.DelayFramesLabel = new System.Windows.Forms.Label();
             this.filePathGroupBox = new System.Windows.Forms.GroupBox();
+            this.okButton = new System.Windows.Forms.Button();
             this.VcGroupBox.SuspendLayout();
             this.filePathGroupBox.SuspendLayout();
             this.SuspendLayout();
@@ -110,14 +111,6 @@
             this.VcGroupBox.TabStop = false;
             this.VcGroupBox.Text = "VC Settings";
             // 
-            // DelayFramesLabel
-            // 
-            this.DelayFramesLabel.Location = new System.Drawing.Point(6, 19);
-            this.DelayFramesLabel.Name = "DelayFramesLabel";
-            this.DelayFramesLabel.Size = new System.Drawing.Size(100, 23);
-            this.DelayFramesLabel.TabIndex = 0;
-            this.DelayFramesLabel.Text = "Delay Frames";
-            // 
             // delayFramesComboBox
             // 
             this.delayFramesComboBox.FormattingEnabled = true;
@@ -125,6 +118,14 @@
             this.delayFramesComboBox.Name = "delayFramesComboBox";
             this.delayFramesComboBox.Size = new System.Drawing.Size(121, 23);
             this.delayFramesComboBox.TabIndex = 1;
+            // 
+            // DelayFramesLabel
+            // 
+            this.DelayFramesLabel.Location = new System.Drawing.Point(6, 19);
+            this.DelayFramesLabel.Name = "DelayFramesLabel";
+            this.DelayFramesLabel.Size = new System.Drawing.Size(100, 23);
+            this.DelayFramesLabel.TabIndex = 0;
+            this.DelayFramesLabel.Text = "Delay Frames";
             // 
             // filePathGroupBox
             // 
@@ -141,11 +142,22 @@
             this.filePathGroupBox.TabStop = false;
             this.filePathGroupBox.Text = "File path";
             // 
+            // okButton
+            // 
+            this.okButton.Location = new System.Drawing.Point(597, 295);
+            this.okButton.Name = "okButton";
+            this.okButton.Size = new System.Drawing.Size(75, 23);
+            this.okButton.TabIndex = 8;
+            this.okButton.Text = "OK";
+            this.okButton.UseVisualStyleBackColor = true;
+            this.okButton.Click += new System.EventHandler(this.okButton_Click);
+            // 
             // SettingForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(700, 338);
+            this.Controls.Add(this.okButton);
             this.Controls.Add(this.filePathGroupBox);
             this.Controls.Add(this.VcGroupBox);
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
@@ -170,5 +182,6 @@
         private Label DelayFramesLabel;
         private ComboBox delayFramesComboBox;
         private GroupBox filePathGroupBox;
+        private Button okButton;
     }
 }

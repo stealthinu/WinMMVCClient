@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -11,9 +12,15 @@ namespace WinMMVCClient
 {
     public partial class SettingForm : Form
     {
-        public SettingForm()
+        public IConfiguration conf;
+
+        public SettingForm(IConfiguration conf)
         {
             InitializeComponent();
+            this.conf = conf;
+            configFileTextBox.Text = conf["path:json"];
+            correspondenceFileTextBox.Text = conf["path:correspondence"];
+            modelFileTextBox.Text = conf["path:model"];
         }
 
         private void configFileButton_Click(object sender, EventArgs e)
@@ -21,7 +28,6 @@ namespace WinMMVCClient
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                // 選択されたファイルのパスをTextBoxに表示
                 configFileTextBox.Text = openFileDialog.FileName;
             }
         }
@@ -31,7 +37,6 @@ namespace WinMMVCClient
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                // 選択されたファイルのパスをTextBoxに表示
                 modelFileTextBox.Text = openFileDialog.FileName;
             }
         }
@@ -41,9 +46,16 @@ namespace WinMMVCClient
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                // 選択されたファイルのパスをTextBoxに表示
                 correspondenceFileTextBox.Text = openFileDialog.FileName;
             }
+        }
+
+        private void okButton_Click(object sender, EventArgs e)
+        {
+            conf["path:json"] = configFileTextBox.Text;
+            conf["path:correspondence"] = correspondenceFileTextBox.Text;
+            conf["path:model"] = modelFileTextBox.Text;
+            // close Dialog
         }
 
         /*

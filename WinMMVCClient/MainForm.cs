@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
+using System.Windows.Forms;
 
 namespace WinMMVCClient
 {
@@ -205,8 +206,11 @@ namespace WinMMVCClient
 
         private void settingButton_Click(object sender, EventArgs e)
         {
-            var settingsForm = new SettingForm();
-            settingsForm.ShowDialog();
+            var settingsForm = new SettingForm(conf);
+            if (settingsForm.ShowDialog() == DialogResult.OK)
+            {
+                conf = settingsForm.conf;
+            }
         }
     }
 }
