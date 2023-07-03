@@ -1,5 +1,6 @@
 ﻿namespace WinMMVCClient
 {
+    // SOLA algorithm from https://github.com/yxlllc/DDSP-SVC/blob/a1f4680ebf89c389b5085757184a8ef972c18009/gui.py#L418-L443
     class Sola
     {
         private int overlapSize;
