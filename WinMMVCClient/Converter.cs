@@ -47,7 +47,6 @@ namespace WinMMVCClient
         private float[] prevWavBuffer;
         private float[] prevTransWav;
         private float[] wavBuffer;
-        private float[] disposedWav;
         private float[,] specs;
         private int truncationSpecs;
         private int? segmentSpecs;
@@ -114,7 +113,6 @@ namespace WinMMVCClient
             stftSpecs = (SegmentSize + disposeConv1dSize * 2 + OverlapSize) / HopSize; // 出てくるspecsはprevStftWavSize分だけ減る
             wavBuffer = new float[stftWavSize];
             specs = new float[stftSpecs, SpecChannels];
-            disposedWav = new float[SegmentSize + OverlapSize];
             audioBuffer = new List<float>(); // TODO: 溢れないためListにしているけど固定長バッファにして溢れたら捨てるようにしたほうがよさそう
 
             onnxConverter = new OnnxConverter(modelFilePath, conf);
@@ -196,7 +194,7 @@ namespace WinMMVCClient
                 var (sin, d0, d1, d2, d3) = sinGenerator.MakeSinD(f0);
                 MakeSpectrogram(wavBuffer, specs);
                 var transWav = onnxConverter.Infer(specs, sin, d0, d1, d2, d3, SidSrc, SidTgt);
-                transWav.AsSpan()[disposeConv1dSize..^disposeConv1dSize].CopyTo(disposedWav); // 前後の劣化してる部分を削除
+                var disposedWav = transWav.AsSpan()[disposeConv1dSize..^disposeConv1dSize]; // 前後の劣化してる部分を削除
                 // オーバーラップしない
                 //var overlappedWav = disposedWav.AsSpan()[..^OverlapSize];
                 // オーバーラップする
