@@ -39,9 +39,9 @@ namespace WinMMVCClient
             this.MicVolumeAdjustLabel = new System.Windows.Forms.Label();
             this.PitchAdjustLabel = new System.Windows.Forms.Label();
             this.PitchAdjustTrackBar = new System.Windows.Forms.TrackBar();
-            this.settingButton = new System.Windows.Forms.Button();
-            this.micVolumeAdjustTextBox = new System.Windows.Forms.TextBox();
-            this.pitchAdjustTextBox = new System.Windows.Forms.TextBox();
+            this.SettingButton = new System.Windows.Forms.Button();
+            this.MicVolumeAdjustTextBox = new System.Windows.Forms.TextBox();
+            this.PitchAdjustTextBox = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.MicVolumeAdjustTrackBar)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.PitchAdjustTrackBar)).BeginInit();
             this.SuspendLayout();
@@ -155,37 +155,37 @@ namespace WinMMVCClient
             // 
             // settingButton
             // 
-            this.settingButton.Location = new System.Drawing.Point(191, 6);
-            this.settingButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.settingButton.Name = "settingButton";
-            this.settingButton.Size = new System.Drawing.Size(82, 32);
-            this.settingButton.TabIndex = 13;
-            this.settingButton.Text = "Setting";
-            this.settingButton.UseVisualStyleBackColor = true;
-            this.settingButton.Click += new System.EventHandler(this.settingButton_Click);
+            this.SettingButton.Location = new System.Drawing.Point(191, 6);
+            this.SettingButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.SettingButton.Name = "settingButton";
+            this.SettingButton.Size = new System.Drawing.Size(82, 32);
+            this.SettingButton.TabIndex = 13;
+            this.SettingButton.Text = "Setting";
+            this.SettingButton.UseVisualStyleBackColor = true;
+            this.SettingButton.Click += new System.EventHandler(this.settingButton_Click);
             // 
             // micVolumeAdjustTextBox
             // 
-            this.micVolumeAdjustTextBox.Location = new System.Drawing.Point(108, 338);
-            this.micVolumeAdjustTextBox.Name = "micVolumeAdjustTextBox";
-            this.micVolumeAdjustTextBox.Size = new System.Drawing.Size(26, 23);
-            this.micVolumeAdjustTextBox.TabIndex = 14;
+            this.MicVolumeAdjustTextBox.Location = new System.Drawing.Point(108, 338);
+            this.MicVolumeAdjustTextBox.Name = "micVolumeAdjustTextBox";
+            this.MicVolumeAdjustTextBox.Size = new System.Drawing.Size(26, 23);
+            this.MicVolumeAdjustTextBox.TabIndex = 14;
             // 
             // pitchAdjustTextBox
             // 
-            this.pitchAdjustTextBox.Location = new System.Drawing.Point(247, 338);
-            this.pitchAdjustTextBox.Name = "pitchAdjustTextBox";
-            this.pitchAdjustTextBox.Size = new System.Drawing.Size(26, 23);
-            this.pitchAdjustTextBox.TabIndex = 15;
+            this.PitchAdjustTextBox.Location = new System.Drawing.Point(247, 338);
+            this.PitchAdjustTextBox.Name = "pitchAdjustTextBox";
+            this.PitchAdjustTextBox.Size = new System.Drawing.Size(26, 23);
+            this.PitchAdjustTextBox.TabIndex = 15;
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(284, 431);
-            this.Controls.Add(this.pitchAdjustTextBox);
-            this.Controls.Add(this.micVolumeAdjustTextBox);
-            this.Controls.Add(this.settingButton);
+            this.Controls.Add(this.PitchAdjustTextBox);
+            this.Controls.Add(this.MicVolumeAdjustTextBox);
+            this.Controls.Add(this.SettingButton);
             this.Controls.Add(this.PitchAdjustLabel);
             this.Controls.Add(this.PitchAdjustTrackBar);
             this.Controls.Add(this.MicVolumeAdjustLabel);
@@ -220,8 +220,8 @@ namespace WinMMVCClient
         private Label MicVolumeAdjustLabel;
         private Label PitchAdjustLabel;
         private TrackBar PitchAdjustTrackBar;
-        private Button settingButton;
-        private TextBox micVolumeAdjustTextBox;
-        private TextBox pitchAdjustTextBox;
+        private Button SettingButton;
+        private TextBox MicVolumeAdjustTextBox;
+        private TextBox PitchAdjustTextBox;
     }
 }

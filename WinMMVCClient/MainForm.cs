@@ -56,7 +56,6 @@ namespace WinMMVCClient
                 converter.InitWaveDevice(inputDevice, outputDevice);
                 converter.SetMicVolumeAdjust(MicVolumeAdjust);
                 converter.SetTargetId(TargetId);
-                PitchAdjustTrackBar.Value = converter.GetPitchAdjust();
                 converter.Start();
             }
             catch (Exception ex)
@@ -166,8 +165,6 @@ namespace WinMMVCClient
                 if (voiceList[i].ID == TargetId)
                 {
                     TargetListBox.SelectedIndex = i;
-                    converter.SetTargetId(TargetId);
-                    SetPitchAdjust(converter.GetPitchAdjust());
                     break;
                 }
             }
@@ -197,16 +194,16 @@ namespace WinMMVCClient
         private void SetupAdjustTrackBar()
         {
             var micVolumeAdjust = Convert.ToInt32(conf["vc_conf:mic_volume_adjust"]);
-            var pitchAdjust = Convert.ToInt32(conf["vc_conf:pitch_adjust"]);
             SetMicVolumeAdjust(micVolumeAdjust);
-            SetPitchAdjust(pitchAdjust);
+            //var pitchAdjust = Convert.ToInt32(conf["vc_conf:pitch_adjust"]);
+            //SetPitchAdjust(pitchAdjust);
         }
 
         private void SetMicVolumeAdjust(int adjustValue)
         {
             MicVolumeAdjust = adjustValue;
             MicVolumeAdjustTrackBar.Value = MicVolumeAdjust;
-            micVolumeAdjustTextBox.Text = MicVolumeAdjust.ToString();
+            MicVolumeAdjustTextBox.Text = MicVolumeAdjust.ToString();
             converter?.SetMicVolumeAdjust(MicVolumeAdjust);
         }
 
@@ -214,7 +211,7 @@ namespace WinMMVCClient
         {
             PitchAdjust = adjustValue;
             PitchAdjustTrackBar.Value = PitchAdjust;
-            pitchAdjustTextBox.Text = PitchAdjust.ToString();
+            PitchAdjustTextBox.Text = PitchAdjust.ToString();
             converter?.SetPitchAdjust(PitchAdjust);
         }
 
