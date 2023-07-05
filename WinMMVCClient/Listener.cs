@@ -1,16 +1,8 @@
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using NAudio.Dsp;
-using Microsoft.ML;
-using Microsoft.ML.OnnxRuntime;
-using Microsoft.ML.OnnxRuntime.Tensors;
 using System.Buffers;
 using Microsoft.Extensions.Configuration;
-using NAudio.Utils;
-using DotnetWorld.API.Structs;
-using DotnetWorld.API;
-using System.ComponentModel.DataAnnotations;
-using System.Reflection.Emit;
 
 namespace WinMMVCClient
 {
@@ -200,7 +192,7 @@ namespace WinMMVCClient
                 newWavBuffer.AsSpan().CopyTo(wavBuffer.AsSpan()[prevWavBuffer.Length..]);
                 wavBuffer.AsSpan()[^prevWavBuffer.Length..].CopyTo(prevWavBuffer); // wavBufferの最後をprevWavBufferとして保持する
                 var f0Scale = PitchUtils.GetF0Scale(correspondenceDict[SidTgt].AdjustSemitones + PitchAdjust);
-                var f0 = AdjustPitch(F0EstimationDio(wavBuffer), f0Scale);
+                var f0 = AdjustPitch(PitchUtils.F0Estimation(wavBuffer), f0Scale);
                 var (sin, d0, d1, d2, d3) = sinGenerator.MakeSinD(f0);
                 MakeSpectrogram(wavBuffer, specs);
                 var transWav = onnxConverter.Infer(specs, sin, d0, d1, d2, d3, SidSrc, SidTgt);
@@ -276,39 +268,6 @@ namespace WinMMVCClient
                 bytes[i * 2 + 1] = vals[1];
             }
             return bytes;
-        }
-
-        public ReadOnlySpan<float> F0EstimationDio(float[] floatWav, int sampleRate = 24000, int hopSize = 128)
-        {
-            // TODO: 関数内でのメモリアロケーションを無くす
-            // TODO: Pitch推定をclassにして他の推定方法をすぐに試せるようにする
-            double[]? wav = Array.ConvertAll(floatWav, x => (double)x);
-
-            var wavSpecs = wav.Length / HopSize;
-            var trancatedWavSpecs = wavSpecs - truncationSpecs * 2 + 1; // paddingせずにSpec算出できる数
-            double framePeriod = (double)hopSize / (double)sampleRate * 1000.0; // 1要素大きくなるが先頭要素が必ず"0"になってしまうので1要素大きくてちょうど良い
-            var option = new DioOption();
-            Core.InitializeDioOption(option);
-            option.frame_period = framePeriod;
-            option.speed = 1;
-            option.f0_floor = 71.0;
-            option.allowed_range = 0.1;
-
-            var f0Length = Core.GetSamplesForDIO(sampleRate, wav.Length, framePeriod);
-            var f0 = new double[f0Length];
-            var time_axis = new double[f0Length];
-            double[]? refined_f0 = new double[f0Length];
-
-            Core.Dio(wav, wav.Length, sampleRate, option, time_axis, f0);
-            Core.StoneMask(wav, wav.Length, sampleRate, time_axis, f0, f0Length, refined_f0);
-
-            float[]? floatF0 = Array.ConvertAll(refined_f0, x => (float)x);
-            // 先頭要素が必ず"0"になる分(1) 前から(truncationSpecs - 1) 後から(truncationSpecs) 削る 例:46->42
-            var sliceStart = 1 + truncationSpecs - 1; // 
-            var sliceLength = floatF0.Length - sliceStart - truncationSpecs;
-            ReadOnlySpan<float> trimedF0 = floatF0.AsSpan().Slice(sliceStart, sliceLength) ; 
-
-            return trimedF0;
         }
 
         public static float[] AdjustPitch(ReadOnlySpan<float> f0, float f0Scale)
