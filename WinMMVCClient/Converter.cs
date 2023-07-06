@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace WinMMVCClient
 {
-    public class Converter
+    public class Converter : IDisposable
     {
         public int SidSrc { get; set; }
         public int SidTgt { get; set; }
@@ -119,6 +119,11 @@ namespace WinMMVCClient
             sinGenerator = new SinGenerator(specsLength: stftSpecs, denseFactors: DenseFactors, upsampleScales: UpsampleRates, delayFrames: SegmentSize, sampleRate: SampleRate, hopSize: HopSize, sineAmp: 0.1f, noiseAmp: 0.003f);
             sola = new Sola(OverlapSize, 256); // OverlapSize > 256
             crossfadeOverlap = new CrossfadeOverlap(OverlapSize);
+        }
+
+        public void Dispose()
+        {
+            DisposeWaveDevice();
         }
 
         public void InitWaveDevice(MMDevice mic, MMDevice speaker)

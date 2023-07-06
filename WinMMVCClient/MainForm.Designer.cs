@@ -162,7 +162,7 @@ namespace WinMMVCClient
             this.SettingButton.TabIndex = 13;
             this.SettingButton.Text = "Setting";
             this.SettingButton.UseVisualStyleBackColor = true;
-            this.SettingButton.Click += new System.EventHandler(this.settingButton_Click);
+            this.SettingButton.Click += new System.EventHandler(this.SettingButton_Click);
             // 
             // micVolumeAdjustTextBox
             // 
