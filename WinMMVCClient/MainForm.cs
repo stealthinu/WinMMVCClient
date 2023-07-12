@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using NAudio.CoreAudioApi;
-using NAudio.Wave;
-using System.Windows.Forms;
+using Newtonsoft.Json.Linq;
 
 namespace WinMMVCClient
 {
@@ -12,8 +11,9 @@ namespace WinMMVCClient
         private MMDevice? inputDevice;
         private MMDevice? outputDevice;
         private Converter? converter;
-        //public IConfiguration conf;
-        public Newtonsoft.Json.Linq.JObject conf;
+        public JObject conf;
+        public JObject hps;
+        private Dictionary<int, Correspondence> correspondenceDict;
         private int TargetId;
         private int MicVolumeAdjust;
         private int PitchAdjust;
@@ -28,9 +28,26 @@ namespace WinMMVCClient
         {
             try
             {
-                var jsonText = File.ReadAllText(Directory.GetCurrentDirectory() + "appsettings.json");
-                conf = Newtonsoft.Json.Linq.JObject.Parse(jsonText);
-                converter = new Converter(conf);
+                var confFilePath = Directory.GetCurrentDirectory() + "\\appsettings.json";
+                var confJson = File.ReadAllText(confFilePath);
+                conf = JObject.Parse(confJson);
+                var hpsFilePath = conf["path"]["json"].Value<String>();
+                var correspondenceFilePath = conf["path"]["correspondence"].Value<String>();
+                var modelFilePath = conf["path"]["model"].Value<String>();
+                if (hpsFilePath == null || correspondenceFilePath == null || modelFilePath == null)
+                {
+                    // Open setting form
+                    var settingsForm = new SettingForm(conf);
+                    if (settingsForm.ShowDialog() == DialogResult.OK)
+                    {
+                        conf = settingsForm.conf;
+                    }
+                }
+                hps = JObject.Parse(File.ReadAllText(hpsFilePath));
+                var sidSrc = conf["vc_conf"]["source_id"].Value<int>();
+                correspondenceDict = CorrespondenceDictReader.ReadDataFromFile(correspondenceFilePath, sidSrc); // òbé“ñàÇÃâπíˆï‚ê≥ílÇéÊìæ
+
+                converter = new Converter(conf, hps, correspondenceDict);
                 SetupInputOutputComboBox();
                 SetupVoiceListBox();
                 SetupAdjustTrackBar();
@@ -85,8 +102,8 @@ namespace WinMMVCClient
 
         private void SetupInputOutputComboBox()
         {
-            string? inputName = conf["device:input_device1"];
-            string? outputName = conf["device:output_device"];
+            string? inputName = conf["device"]["input_device1"].Value<string>();
+            string? outputName = conf["device"]["output_device"].Value<string>();
             inputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
             var inputsArray = inputs.ToArray();
             outputs = new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
@@ -142,20 +159,16 @@ namespace WinMMVCClient
 
         private void SetupVoiceListBox()
         {
-            TargetId = Convert.ToInt32(conf["vc_conf:target_id"]);
+            TargetId = conf["vc_conf"]["target_id"].Value<int>();
             TargetListBox.Items.Clear();
             var voiceList = new List<Voice>();
-            var list = conf.GetSection("others:voice_list");
-            var arr = list.AsEnumerable().ToArray();
-            foreach (var ary in list.AsEnumerable())
+            var index = 0;
+            foreach (var (key, value) in correspondenceDict)
             {
-                if (String.IsNullOrEmpty(ary.Value))
-                    continue;
-                var keys = ary.Key.Split(':');
-                var index = Convert.ToInt32(keys[^2]);
-                var id = Convert.ToInt32(keys[^1]);
-                var name = ary.Value;
+                var id = value.Id;
+                var name = value.Name;
                 voiceList.Add(new Voice(index, id, name));
+                index++;
             }
             voiceList.Sort((a, b) => a.Index - b.Index);
             TargetListBox.DataSource = voiceList;
@@ -216,11 +229,11 @@ namespace WinMMVCClient
 
         private void SettingButton_Click(object sender, EventArgs e)
         {
-            var settingsForm = new SettingForm(conf, jsonObject);
+            var settingsForm = new SettingForm(conf);
             if (settingsForm.ShowDialog() == DialogResult.OK)
             {
                 conf = settingsForm.conf;
-                converter = new Converter(conf);
+                converter = new Converter(conf, hps, correspondenceDict);
             }
         }
     }

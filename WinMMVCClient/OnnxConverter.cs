@@ -1,9 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.ML.OnnxRuntime;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Newtonsoft.Json.Linq;
 
 namespace WinMMVCClient
 {
@@ -55,7 +53,7 @@ namespace WinMMVCClient
             })[0][0,0]
          */
 
-        public OnnxConverter(string modelFilePath, IConfiguration conf)
+        public OnnxConverter(string modelFilePath, JObject conf)
         {
             // ONNXオプション指定
             // DirectMLの場合はパッケージを「Microsoft.ML.OnnxRuntime.DirectML」を入れる
@@ -63,7 +61,7 @@ namespace WinMMVCClient
             // Pythonの時と同様「Microsoft.ML.OnnxRuntime」を入れるとCPUでの変換になってしまうので注意
             // ※下記はDirectML用の指定
             var opts = new SessionOptions();
-            opts.AppendExecutionProvider_DML(conf.GetValue<int>("device:gpu_id")); // DirectMLでGPU_ID=0指定
+            opts.AppendExecutionProvider_DML(conf["device"]["gpu_id"].Value<int>()); // DirectMLでGPU_ID=0指定
             opts.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
             opts.EnableMemoryPattern = false;
             // ※下記はCUDA用の指定

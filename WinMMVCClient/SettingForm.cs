@@ -14,9 +14,9 @@ namespace WinMMVCClient
 {
     public partial class SettingForm : Form
     {
-        public Newtonsoft.Json.Linq.JObject conf;
+        public JObject conf;
 
-        public SettingForm(Newtonsoft.Json.Linq.JObject conf)
+        public SettingForm(JObject conf)
         {
             InitializeComponent();
             this.conf = conf;

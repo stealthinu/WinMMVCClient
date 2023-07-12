@@ -40,7 +40,8 @@ namespace WinMMVCClient
         //private readonly WaveIn waveIn;
         //private WaveOut waveOut;
         private BufferedWaveProvider speakerWaveProvider;
-        private IConfiguration? hps;
+        private JObject conf;
+        private JObject hps;
         private Dictionary<int, Correspondence> correspondenceDict;
 
         private readonly List<float> audioBuffer;
@@ -57,58 +58,49 @@ namespace WinMMVCClient
         private int disposeConv1dSize;
         private int stftM;
 
-        public Converter(Newtonsoft.Json.Linq.JObject conf)
+        public Converter(JObject conf, JObject hps, Dictionary<int, Correspondence> correspondenceDict)
         {
-            var hpsFilePath = conf["path"]["json"].Value<String>();
-            var correspondenceFilePath = conf["path"]["correspondence"].Value<String>();
-            var modelFilePath = conf["path"]["model"].Value<String>();
-            if (hpsFilePath == null || correspondenceFilePath == null || modelFilePath == null)
-            {
-                throw new ArgumentException("Configuration file is not specified.");
-            }
+            this.conf = conf;
+            this.hps = hps;
+            this.correspondenceDict = correspondenceDict;
 
-            hps = new ConfigurationBuilder().AddJsonFile(hpsFilePath).Build();
-
-            SampleRate = hps.GetValue<int>("data:sampling_rate");
-            HopSize = hps.GetValue<int>("data:hop_length");
-            WinSize = hps.GetValue<int>("data:win_length");
-            MaxWavValue = hps.GetValue<float>("data:max_wav_value");
-            var upsampleRatesSection = hps.GetSection("model:upsample_rates");
-            UpsampleRates = upsampleRatesSection.GetChildren().Select(x => int.Parse(x.Value)).ToArray();
-            var denseFactorsSection = hps.GetSection("model:dense_factors");
-            if (!denseFactorsSection.Exists())
+            SampleRate = hps["data"]["sampling_rate"].Value<int>();
+            HopSize = hps["data"]["hop_length"].Value<int>();
+            WinSize = hps["data"]["win_length"].Value<int>();
+            MaxWavValue = hps["data"]["max_wav_value"].Value<float>();
+            UpsampleRates = hps["model"]["upsample_rates"].Values<int>().ToArray();
+            if ((hps["model"] as JObject).ContainsKey("dense_factors"))
             {
-                // v1.5のTrainerではdense_factorsはコード決め打ちで設定ファイルになかったので特別処理　
-                DenseFactors = new float[] { 0.5f, 1.0f, 4.0f, 8.0f };
+                DenseFactors = hps["model"]["dense_factors"].Values<float>().ToArray();
             }
             else
             {
-                DenseFactors = denseFactorsSection.GetChildren().Select(x => float.Parse(x.Value)).ToArray();
+                // v1.5のTrainerではdense_factorsはコード決め打ちで設定ファイルになかったので特別処理
+                DenseFactors = new float[] { 0.5f, 1.0f, 4.0f, 8.0f };
             }
 
-            SidSrc = conf.GetValue<int>("vc_conf:source_id");
-            SidTgt = conf.GetValue<int>("vc_conf:target_id");
-            correspondenceDict = CorrespondenceDictReader.ReadDataFromFile(correspondenceFilePath, SidSrc); // 話者毎の音程補正値を取得
+            SidSrc = conf["vc_conf"]["source_id"].Value<int>();
+            SidTgt = conf["vc_conf"]["target_id"].Value<int>();
 
-            MicVolumeAdjustDB = conf.GetValue<int>("vc_conf:mic_volume_adjust");
+            MicVolumeAdjustDB = conf["vc_conf"]["mic_volume_adjust"].Value<int>();
             MicVolumeAdjust = Math.Pow(10.0, MicVolumeAdjustDB / 20.0); // dB値を倍率に変換
-            PitchAdjust = conf.GetValue<int>("vc_conf:pitch_adjust");
-            SegmentSize = conf.GetValue<int>("vc_conf:delay_flames");
+            PitchAdjust = conf["vc_conf"]["pitch_adjust"].Value<int>();
+            SegmentSize = conf["vc_conf"]["delay_flames"].Value<int>();
             SpecChannels = WinSize / 2; // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256
-            OverlapSize = conf.GetValue<int>("vc_conf:overlap");
+            OverlapSize = conf["vc_conf"]["overlap"].Value<int>();
             truncationSpecs = WinSize / HopSize / 2; // 2 FFTするときに端で計算できないサイズ
             segmentSpecs = SegmentSize / HopSize; // 32 スペクトログラムの時間方向の数
             stftM = (int)Math.Log((double)WinSize, 2); // winSizeの2のべき数(512=2^9)
             prevStftWavSize = (((WinSize / HopSize) / 2) + 1) * HopSize; // スペクトログラム作成用に過去のwavを、WinSize半分ぶんのspecsに+1した長さだけ保持
-            DisposeConv1dSpecs = conf.GetValue<int>("vc_conf:dispose_conv1d_specs");
+            DisposeConv1dSpecs = conf["vc_conf"]["dispose_conv1d_specs"].Value<int>();
             disposeConv1dSize = DisposeConv1dSpecs * HopSize;
             BytesPerSample = 2;
-            Latency = conf.GetValue<int>("vc_conf:latency");
+            Latency = conf["vc_conf"]["latency"].Value<int>();
             WaveFormat? waveFormat = new WaveFormat(SampleRate, 1); // 24K mono
             BytesPerSample = waveFormat.BitsPerSample / 8;
 
-            newWavBuffer = Enumerable.Repeat<float>(0.0f, SegmentSize).ToArray();
-            prevWavBuffer = Enumerable.Repeat<float>(0.0f, prevStftWavSize + disposeConv1dSize * 2 + OverlapSize).ToArray();
+            newWavBuffer = Enumerable.Repeat(0.0f, SegmentSize).ToArray();
+            prevWavBuffer = Enumerable.Repeat(0.0f, prevStftWavSize + disposeConv1dSize * 2 + OverlapSize).ToArray();
             prevTransWav = new float[OverlapSize];
             stftWavSize = SegmentSize + prevStftWavSize + disposeConv1dSize * 2 + OverlapSize;
             stftSpecs = (SegmentSize + disposeConv1dSize * 2 + OverlapSize) / HopSize; // 出てくるspecsはprevStftWavSize分だけ減る
@@ -116,6 +108,7 @@ namespace WinMMVCClient
             specs = new float[stftSpecs, SpecChannels];
             audioBuffer = new List<float>(); // TODO: 溢れないためListにしているけど固定長バッファにして溢れたら捨てるようにしたほうがよさそう
 
+            var modelFilePath = conf["path"]["model"].Value<String>();
             onnxConverter = new OnnxConverter(modelFilePath, conf);
             sinGenerator = new SinGenerator(specsLength: stftSpecs, denseFactors: DenseFactors, upsampleScales: UpsampleRates, delayFrames: SegmentSize, sampleRate: SampleRate, hopSize: HopSize, sineAmp: 0.1f, noiseAmp: 0.003f);
             sola = new Sola(OverlapSize, 256); // OverlapSize > 256
@@ -218,7 +211,7 @@ namespace WinMMVCClient
         {
             // 4096を128毎で257chのspectrogramを作る
             // NAudioのFFTを利用する　そのためComplexもNAudioのものを利用
-            NAudio.Dsp.Complex[]? complexWav = ArrayPool<NAudio.Dsp.Complex>.Shared.Rent(WinSize);
+            Complex[]? complexWav = ArrayPool<Complex>.Shared.Rent(WinSize);
             var wavSpecs = wav.Length / HopSize;
             var trancatedWavSpecs = wavSpecs - truncationSpecs * 2 + 1; // paddingせずにSpec算出できる数
             for (int n = 0; n < trancatedWavSpecs; n++)
