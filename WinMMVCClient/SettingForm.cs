@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,18 +14,15 @@ namespace WinMMVCClient
 {
     public partial class SettingForm : Form
     {
-        public IConfiguration conf;
-        public Newtonsoft.Json.Linq.JObject jsonObject;
+        public Newtonsoft.Json.Linq.JObject conf;
 
-        public SettingForm(IConfiguration conf, Newtonsoft.Json.Linq.JObject jsonObject)
+        public SettingForm(Newtonsoft.Json.Linq.JObject conf)
         {
             InitializeComponent();
             this.conf = conf;
-            this.jsonObject = jsonObject;
-            configFileTextBox.Text = conf["path:json"];
-            correspondenceFileTextBox.Text = conf["path:correspondence"];
-            modelFileTextBox.Text = conf["path:model"];
-            this.jsonObject = jsonObject;
+            configFileTextBox.Text = conf["path"]["json"].Value<String>();
+            correspondenceFileTextBox.Text = conf["path"]["correspondence"].Value<String>();
+            modelFileTextBox.Text = conf["path"]["model"].Value<String>();
         }
 
         private void configFileButton_Click(object sender, EventArgs e)
@@ -56,26 +54,12 @@ namespace WinMMVCClient
 
         private void okButton_Click(object sender, EventArgs e)
         {
-            conf["path:json"] = configFileTextBox.Text;
-            conf["path:correspondence"] = correspondenceFileTextBox.Text;
-            conf["path:model"] = modelFileTextBox.Text;
-            jsonObject["path"]["json"] = configFileTextBox.Text;
-            saveSetting();
+            conf["path"]["json"] = configFileTextBox.Text;
+            conf["path"]["correspondence"] = correspondenceFileTextBox.Text;
+            conf["path"]["model"] = modelFileTextBox.Text;
+            File.WriteAllText("test_settings.json", conf.ToString());
             this.DialogResult = DialogResult.OK;
             this.Close();
-        }
-
-        private void saveSetting()
-        {
-            var dict = new Dictionary<string, string>();
-            foreach (var pair in conf.AsEnumerable())
-            {
-                dict.Add(pair.Key, pair.Value);
-            }
-            var jsonString = System.Text.Json.JsonSerializer.Serialize(dict);
-            File.WriteAllText("test_settings_file.json", jsonString);
-            var outputJsonText = jsonObject.ToString();
-            File.WriteAllText("test_settings.json", outputJsonText);
         }
 
         /*

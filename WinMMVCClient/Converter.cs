@@ -3,6 +3,7 @@ using NAudio.Wave;
 using NAudio.Dsp;
 using System.Buffers;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json.Linq;
 
 namespace WinMMVCClient
 {
@@ -56,11 +57,11 @@ namespace WinMMVCClient
         private int disposeConv1dSize;
         private int stftM;
 
-        public Converter(IConfiguration conf)
+        public Converter(Newtonsoft.Json.Linq.JObject conf)
         {
-            var hpsFilePath = conf["path:json"];
-            var correspondenceFilePath = conf["path:correspondence"];
-            var modelFilePath = conf["path:model"];
+            var hpsFilePath = conf["path"]["json"].Value<String>();
+            var correspondenceFilePath = conf["path"]["correspondence"].Value<String>();
+            var modelFilePath = conf["path"]["model"].Value<String>();
             if (hpsFilePath == null || correspondenceFilePath == null || modelFilePath == null)
             {
                 throw new ArgumentException("Configuration file is not specified.");

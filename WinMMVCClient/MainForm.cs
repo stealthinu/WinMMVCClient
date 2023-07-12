@@ -12,8 +12,8 @@ namespace WinMMVCClient
         private MMDevice? inputDevice;
         private MMDevice? outputDevice;
         private Converter? converter;
-        public IConfiguration conf;
-        public Newtonsoft.Json.Linq.JObject jsonObject;
+        //public IConfiguration conf;
+        public Newtonsoft.Json.Linq.JObject conf;
         private int TargetId;
         private int MicVolumeAdjust;
         private int PitchAdjust;
@@ -28,14 +28,8 @@ namespace WinMMVCClient
         {
             try
             {
-                var builder = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                var jsonText = File.ReadAllText("appsettings.json");
-                jsonObject = Newtonsoft.Json.Linq.JObject.Parse(jsonText);
-                var outputJsonText = jsonObject.ToString();
-                File.WriteAllText("test_settings.json", outputJsonText);
-                conf = builder.Build();
+                var jsonText = File.ReadAllText(Directory.GetCurrentDirectory() + "appsettings.json");
+                conf = Newtonsoft.Json.Linq.JObject.Parse(jsonText);
                 converter = new Converter(conf);
                 SetupInputOutputComboBox();
                 SetupVoiceListBox();
