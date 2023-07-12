@@ -28,19 +28,22 @@ namespace WinMMVCClient
         {
             try
             {
-                var confFilePath = Directory.GetCurrentDirectory() + "\\appsettings.json";
+                var confFilePath = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
                 var confJson = File.ReadAllText(confFilePath);
                 conf = JObject.Parse(confJson);
                 var hpsFilePath = conf["path"]["json"].Value<String>();
                 var correspondenceFilePath = conf["path"]["correspondence"].Value<String>();
                 var modelFilePath = conf["path"]["model"].Value<String>();
-                if (hpsFilePath == null || correspondenceFilePath == null || modelFilePath == null)
+                if (string.IsNullOrWhiteSpace(hpsFilePath) || string.IsNullOrWhiteSpace(correspondenceFilePath) || string.IsNullOrWhiteSpace(modelFilePath))
                 {
                     // Open setting form
                     var settingsForm = new SettingForm(conf);
                     if (settingsForm.ShowDialog() == DialogResult.OK)
                     {
                         conf = settingsForm.conf;
+                        hpsFilePath = conf["path"]["json"].Value<String>();
+                        correspondenceFilePath = conf["path"]["correspondence"].Value<String>();
+                        modelFilePath = conf["path"]["model"].Value<String>();
                     }
                 }
                 hps = JObject.Parse(File.ReadAllText(hpsFilePath));
