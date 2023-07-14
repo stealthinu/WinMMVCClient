@@ -2,7 +2,6 @@ using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using NAudio.Dsp;
 using System.Buffers;
-using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 
 namespace WinMMVCClient

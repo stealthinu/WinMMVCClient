@@ -1,14 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
-using System.Text.Json.Nodes;
-using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+﻿using Newtonsoft.Json.Linq;
 
 namespace WinMMVCClient
 {
@@ -54,6 +44,7 @@ namespace WinMMVCClient
 
         private void okButton_Click(object sender, EventArgs e)
         {
+            // pathの空チェックする
             conf["path"]["json"] = configFileTextBox.Text;
             conf["path"]["correspondence"] = correspondenceFileTextBox.Text;
             conf["path"]["model"] = modelFileTextBox.Text;
