@@ -12,6 +12,7 @@ namespace WinMMVCClient
         private MMDevice? outputDevice;
         private Converter? converter;
         public JObject conf;
+        public String confFilePath;
         public JObject hps;
         private Dictionary<int, Correspondence> correspondenceDict;
         private int TargetId;
@@ -28,7 +29,7 @@ namespace WinMMVCClient
         {
             try
             {
-                var confFilePath = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
+                confFilePath = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
                 var confJson = File.ReadAllText(confFilePath);
                 conf = JObject.Parse(confJson);
                 var hpsFilePath = conf["path"]["json"].Value<String>();
@@ -37,7 +38,7 @@ namespace WinMMVCClient
                 if (string.IsNullOrWhiteSpace(hpsFilePath) || string.IsNullOrWhiteSpace(correspondenceFilePath) || string.IsNullOrWhiteSpace(modelFilePath))
                 {
                     // Open setting form
-                    var settingsForm = new SettingForm(conf);
+                    var settingsForm = new SettingForm(conf, confFilePath);
                     if (settingsForm.ShowDialog() == DialogResult.OK)
                     {
                         conf = settingsForm.conf;
@@ -232,7 +233,7 @@ namespace WinMMVCClient
 
         private void SettingButton_Click(object sender, EventArgs e)
         {
-            var settingsForm = new SettingForm(conf);
+            var settingsForm = new SettingForm(conf, confFilePath);
             if (settingsForm.ShowDialog() == DialogResult.OK)
             {
                 conf = settingsForm.conf;

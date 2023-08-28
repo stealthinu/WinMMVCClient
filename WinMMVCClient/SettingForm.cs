@@ -5,11 +5,13 @@ namespace WinMMVCClient
     public partial class SettingForm : Form
     {
         public JObject conf;
+        public String confFilePath;
 
-        public SettingForm(JObject conf)
+        public SettingForm(JObject conf, String confFilePath)
         {
             InitializeComponent();
             this.conf = conf;
+            this.confFilePath = confFilePath;
             configFileTextBox.Text = conf["path"]["json"].Value<String>();
             correspondenceFileTextBox.Text = conf["path"]["correspondence"].Value<String>();
             modelFileTextBox.Text = conf["path"]["model"].Value<String>();
@@ -48,7 +50,7 @@ namespace WinMMVCClient
             conf["path"]["json"] = configFileTextBox.Text;
             conf["path"]["correspondence"] = correspondenceFileTextBox.Text;
             conf["path"]["model"] = modelFileTextBox.Text;
-            File.WriteAllText("test_settings.json", conf.ToString());
+            File.WriteAllText(confFilePath, conf.ToString());
             this.DialogResult = DialogResult.OK;
             this.Close();
         }
