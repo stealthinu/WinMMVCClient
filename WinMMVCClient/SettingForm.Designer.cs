@@ -28,146 +28,263 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.configFileButton = new System.Windows.Forms.Button();
-            this.configFileTextBox = new System.Windows.Forms.TextBox();
-            this.modelFileTextBox = new System.Windows.Forms.TextBox();
-            this.modelFileButton = new System.Windows.Forms.Button();
-            this.correspondenceFileTextBox = new System.Windows.Forms.TextBox();
-            this.correspondenceFileButton = new System.Windows.Forms.Button();
-            this.VcGroupBox = new System.Windows.Forms.GroupBox();
-            this.delayFramesComboBox = new System.Windows.Forms.ComboBox();
-            this.DelayFramesLabel = new System.Windows.Forms.Label();
-            this.filePathGroupBox = new System.Windows.Forms.GroupBox();
-            this.okButton = new System.Windows.Forms.Button();
-            this.VcGroupBox.SuspendLayout();
-            this.filePathGroupBox.SuspendLayout();
-            this.SuspendLayout();
+            configFileButton = new Button();
+            configFileTextBox = new TextBox();
+            modelFileTextBox = new TextBox();
+            modelFileButton = new Button();
+            correspondenceFileTextBox = new TextBox();
+            correspondenceFileButton = new Button();
+            VcGroupBox = new GroupBox();
+            gpuIdComboBox = new ComboBox();
+            gpuIdLabel = new Label();
+            disposeSpecsComboBox = new ComboBox();
+            disposeSpecsLabel = new Label();
+            overlapComboBox = new ComboBox();
+            overlapLabel = new Label();
+            delayFramesComboBox = new ComboBox();
+            delayFramesLabel = new Label();
+            filePathGroupBox = new GroupBox();
+            okButton = new Button();
+            SystemGroupBox = new GroupBox();
+            shareModeComboBox = new ComboBox();
+            shareModeLabel = new Label();
+            latencyComboBox = new ComboBox();
+            latencyLabel = new Label();
+            VcGroupBox.SuspendLayout();
+            filePathGroupBox.SuspendLayout();
+            SystemGroupBox.SuspendLayout();
+            SuspendLayout();
             // 
             // configFileButton
             // 
-            this.configFileButton.Location = new System.Drawing.Point(553, 22);
-            this.configFileButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.configFileButton.Name = "configFileButton";
-            this.configFileButton.Size = new System.Drawing.Size(103, 22);
-            this.configFileButton.TabIndex = 0;
-            this.configFileButton.Text = "config";
-            this.configFileButton.UseVisualStyleBackColor = true;
-            this.configFileButton.Click += new System.EventHandler(this.configFileButton_Click);
+            configFileButton.Location = new Point(632, 29);
+            configFileButton.Name = "configFileButton";
+            configFileButton.Size = new Size(118, 29);
+            configFileButton.TabIndex = 0;
+            configFileButton.Text = "config";
+            configFileButton.UseVisualStyleBackColor = true;
+            configFileButton.Click += configFileButton_Click;
             // 
             // configFileTextBox
             // 
-            this.configFileTextBox.Location = new System.Drawing.Point(15, 21);
-            this.configFileTextBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.configFileTextBox.Name = "configFileTextBox";
-            this.configFileTextBox.Size = new System.Drawing.Size(532, 23);
-            this.configFileTextBox.TabIndex = 1;
+            configFileTextBox.Location = new Point(17, 28);
+            configFileTextBox.Name = "configFileTextBox";
+            configFileTextBox.Size = new Size(607, 27);
+            configFileTextBox.TabIndex = 1;
             // 
             // modelFileTextBox
             // 
-            this.modelFileTextBox.Location = new System.Drawing.Point(15, 48);
-            this.modelFileTextBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.modelFileTextBox.Name = "modelFileTextBox";
-            this.modelFileTextBox.Size = new System.Drawing.Size(532, 23);
-            this.modelFileTextBox.TabIndex = 3;
+            modelFileTextBox.Location = new Point(17, 64);
+            modelFileTextBox.Name = "modelFileTextBox";
+            modelFileTextBox.Size = new Size(607, 27);
+            modelFileTextBox.TabIndex = 3;
             // 
             // modelFileButton
             // 
-            this.modelFileButton.Location = new System.Drawing.Point(553, 49);
-            this.modelFileButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.modelFileButton.Name = "modelFileButton";
-            this.modelFileButton.Size = new System.Drawing.Size(103, 22);
-            this.modelFileButton.TabIndex = 2;
-            this.modelFileButton.Text = "model";
-            this.modelFileButton.UseVisualStyleBackColor = true;
-            this.modelFileButton.Click += new System.EventHandler(this.modelFileButton_Click);
+            modelFileButton.Location = new Point(632, 65);
+            modelFileButton.Name = "modelFileButton";
+            modelFileButton.Size = new Size(118, 29);
+            modelFileButton.TabIndex = 2;
+            modelFileButton.Text = "model";
+            modelFileButton.UseVisualStyleBackColor = true;
+            modelFileButton.Click += modelFileButton_Click;
             // 
             // correspondenceFileTextBox
             // 
-            this.correspondenceFileTextBox.Location = new System.Drawing.Point(15, 75);
-            this.correspondenceFileTextBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.correspondenceFileTextBox.Name = "correspondenceFileTextBox";
-            this.correspondenceFileTextBox.Size = new System.Drawing.Size(532, 23);
-            this.correspondenceFileTextBox.TabIndex = 5;
+            correspondenceFileTextBox.Location = new Point(17, 100);
+            correspondenceFileTextBox.Name = "correspondenceFileTextBox";
+            correspondenceFileTextBox.Size = new Size(607, 27);
+            correspondenceFileTextBox.TabIndex = 5;
             // 
             // correspondenceFileButton
             // 
-            this.correspondenceFileButton.Location = new System.Drawing.Point(553, 76);
-            this.correspondenceFileButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.correspondenceFileButton.Name = "correspondenceFileButton";
-            this.correspondenceFileButton.Size = new System.Drawing.Size(103, 22);
-            this.correspondenceFileButton.TabIndex = 4;
-            this.correspondenceFileButton.Text = "correspondence";
-            this.correspondenceFileButton.UseVisualStyleBackColor = true;
-            this.correspondenceFileButton.Click += new System.EventHandler(this.correspondenceFileButton_Click);
+            correspondenceFileButton.Location = new Point(632, 101);
+            correspondenceFileButton.Name = "correspondenceFileButton";
+            correspondenceFileButton.Size = new Size(118, 29);
+            correspondenceFileButton.TabIndex = 4;
+            correspondenceFileButton.Text = "correspondence";
+            correspondenceFileButton.UseVisualStyleBackColor = true;
+            correspondenceFileButton.Click += correspondenceFileButton_Click;
             // 
             // VcGroupBox
             // 
-            this.VcGroupBox.Controls.Add(this.delayFramesComboBox);
-            this.VcGroupBox.Controls.Add(this.DelayFramesLabel);
-            this.VcGroupBox.Location = new System.Drawing.Point(12, 130);
-            this.VcGroupBox.Name = "VcGroupBox";
-            this.VcGroupBox.Size = new System.Drawing.Size(244, 167);
-            this.VcGroupBox.TabIndex = 6;
-            this.VcGroupBox.TabStop = false;
-            this.VcGroupBox.Text = "VC Settings";
+            VcGroupBox.Controls.Add(latencyComboBox);
+            VcGroupBox.Controls.Add(latencyLabel);
+            VcGroupBox.Controls.Add(disposeSpecsComboBox);
+            VcGroupBox.Controls.Add(disposeSpecsLabel);
+            VcGroupBox.Controls.Add(overlapComboBox);
+            VcGroupBox.Controls.Add(overlapLabel);
+            VcGroupBox.Controls.Add(delayFramesComboBox);
+            VcGroupBox.Controls.Add(delayFramesLabel);
+            VcGroupBox.Location = new Point(14, 173);
+            VcGroupBox.Margin = new Padding(3, 4, 3, 4);
+            VcGroupBox.Name = "VcGroupBox";
+            VcGroupBox.Padding = new Padding(3, 4, 3, 4);
+            VcGroupBox.Size = new Size(279, 223);
+            VcGroupBox.TabIndex = 6;
+            VcGroupBox.TabStop = false;
+            VcGroupBox.Text = "VC Settings";
+            // 
+            // gpuIdComboBox
+            // 
+            gpuIdComboBox.FormattingEnabled = true;
+            gpuIdComboBox.Location = new Point(135, 21);
+            gpuIdComboBox.Margin = new Padding(3, 4, 3, 4);
+            gpuIdComboBox.Name = "gpuIdComboBox";
+            gpuIdComboBox.Size = new Size(138, 28);
+            gpuIdComboBox.TabIndex = 7;
+            // 
+            // gpuIdLabel
+            // 
+            gpuIdLabel.Location = new Point(14, 25);
+            gpuIdLabel.Name = "gpuIdLabel";
+            gpuIdLabel.Size = new Size(114, 24);
+            gpuIdLabel.TabIndex = 6;
+            gpuIdLabel.Text = "GPU ID";
+            // 
+            // disposeSpecsComboBox
+            // 
+            disposeSpecsComboBox.FormattingEnabled = true;
+            disposeSpecsComboBox.Location = new Point(128, 93);
+            disposeSpecsComboBox.Margin = new Padding(3, 4, 3, 4);
+            disposeSpecsComboBox.Name = "disposeSpecsComboBox";
+            disposeSpecsComboBox.Size = new Size(138, 28);
+            disposeSpecsComboBox.TabIndex = 5;
+            // 
+            // disposeSpecsLabel
+            // 
+            disposeSpecsLabel.Location = new Point(7, 97);
+            disposeSpecsLabel.Name = "disposeSpecsLabel";
+            disposeSpecsLabel.Size = new Size(114, 24);
+            disposeSpecsLabel.TabIndex = 4;
+            disposeSpecsLabel.Text = "Dispose specs";
+            // 
+            // overlapComboBox
+            // 
+            overlapComboBox.FormattingEnabled = true;
+            overlapComboBox.Location = new Point(128, 57);
+            overlapComboBox.Margin = new Padding(3, 4, 3, 4);
+            overlapComboBox.Name = "overlapComboBox";
+            overlapComboBox.Size = new Size(138, 28);
+            overlapComboBox.TabIndex = 3;
+            // 
+            // overlapLabel
+            // 
+            overlapLabel.Location = new Point(7, 61);
+            overlapLabel.Name = "overlapLabel";
+            overlapLabel.Size = new Size(114, 24);
+            overlapLabel.TabIndex = 2;
+            overlapLabel.Text = "Overlap";
             // 
             // delayFramesComboBox
             // 
-            this.delayFramesComboBox.FormattingEnabled = true;
-            this.delayFramesComboBox.Location = new System.Drawing.Point(112, 16);
-            this.delayFramesComboBox.Name = "delayFramesComboBox";
-            this.delayFramesComboBox.Size = new System.Drawing.Size(121, 23);
-            this.delayFramesComboBox.TabIndex = 1;
+            delayFramesComboBox.FormattingEnabled = true;
+            delayFramesComboBox.Location = new Point(128, 21);
+            delayFramesComboBox.Margin = new Padding(3, 4, 3, 4);
+            delayFramesComboBox.Name = "delayFramesComboBox";
+            delayFramesComboBox.Size = new Size(138, 28);
+            delayFramesComboBox.TabIndex = 1;
             // 
-            // DelayFramesLabel
+            // delayFramesLabel
             // 
-            this.DelayFramesLabel.Location = new System.Drawing.Point(6, 19);
-            this.DelayFramesLabel.Name = "DelayFramesLabel";
-            this.DelayFramesLabel.Size = new System.Drawing.Size(100, 23);
-            this.DelayFramesLabel.TabIndex = 0;
-            this.DelayFramesLabel.Text = "Delay Frames";
+            delayFramesLabel.Location = new Point(7, 25);
+            delayFramesLabel.Name = "delayFramesLabel";
+            delayFramesLabel.Size = new Size(114, 24);
+            delayFramesLabel.TabIndex = 0;
+            delayFramesLabel.Text = "Delay frames";
             // 
             // filePathGroupBox
             // 
-            this.filePathGroupBox.Controls.Add(this.configFileTextBox);
-            this.filePathGroupBox.Controls.Add(this.configFileButton);
-            this.filePathGroupBox.Controls.Add(this.correspondenceFileTextBox);
-            this.filePathGroupBox.Controls.Add(this.modelFileButton);
-            this.filePathGroupBox.Controls.Add(this.correspondenceFileButton);
-            this.filePathGroupBox.Controls.Add(this.modelFileTextBox);
-            this.filePathGroupBox.Location = new System.Drawing.Point(12, 12);
-            this.filePathGroupBox.Name = "filePathGroupBox";
-            this.filePathGroupBox.Size = new System.Drawing.Size(676, 112);
-            this.filePathGroupBox.TabIndex = 7;
-            this.filePathGroupBox.TabStop = false;
-            this.filePathGroupBox.Text = "File path";
+            filePathGroupBox.Controls.Add(configFileTextBox);
+            filePathGroupBox.Controls.Add(configFileButton);
+            filePathGroupBox.Controls.Add(correspondenceFileTextBox);
+            filePathGroupBox.Controls.Add(modelFileButton);
+            filePathGroupBox.Controls.Add(correspondenceFileButton);
+            filePathGroupBox.Controls.Add(modelFileTextBox);
+            filePathGroupBox.Location = new Point(14, 16);
+            filePathGroupBox.Margin = new Padding(3, 4, 3, 4);
+            filePathGroupBox.Name = "filePathGroupBox";
+            filePathGroupBox.Padding = new Padding(3, 4, 3, 4);
+            filePathGroupBox.Size = new Size(773, 149);
+            filePathGroupBox.TabIndex = 7;
+            filePathGroupBox.TabStop = false;
+            filePathGroupBox.Text = "File path";
             // 
             // okButton
             // 
-            this.okButton.Location = new System.Drawing.Point(597, 295);
-            this.okButton.Name = "okButton";
-            this.okButton.Size = new System.Drawing.Size(75, 23);
-            this.okButton.TabIndex = 8;
-            this.okButton.Text = "OK";
-            this.okButton.UseVisualStyleBackColor = true;
-            this.okButton.Click += new System.EventHandler(this.okButton_Click);
+            okButton.Location = new Point(682, 393);
+            okButton.Margin = new Padding(3, 4, 3, 4);
+            okButton.Name = "okButton";
+            okButton.Size = new Size(86, 31);
+            okButton.TabIndex = 8;
+            okButton.Text = "OK";
+            okButton.UseVisualStyleBackColor = true;
+            okButton.Click += okButton_Click;
+            // 
+            // SystemGroupBox
+            // 
+            SystemGroupBox.Controls.Add(shareModeComboBox);
+            SystemGroupBox.Controls.Add(shareModeLabel);
+            SystemGroupBox.Controls.Add(gpuIdComboBox);
+            SystemGroupBox.Controls.Add(gpuIdLabel);
+            SystemGroupBox.Location = new Point(308, 173);
+            SystemGroupBox.Name = "SystemGroupBox";
+            SystemGroupBox.Size = new Size(285, 223);
+            SystemGroupBox.TabIndex = 9;
+            SystemGroupBox.TabStop = false;
+            SystemGroupBox.Text = "System Settings";
+            // 
+            // shareModeComboBox
+            // 
+            shareModeComboBox.FormattingEnabled = true;
+            shareModeComboBox.Location = new Point(135, 61);
+            shareModeComboBox.Margin = new Padding(3, 4, 3, 4);
+            shareModeComboBox.Name = "shareModeComboBox";
+            shareModeComboBox.Size = new Size(138, 28);
+            shareModeComboBox.TabIndex = 9;
+            shareModeComboBox.SelectedIndexChanged += shareModeComboBox_SelectedIndexChanged;
+            // 
+            // shareModeLabel
+            // 
+            shareModeLabel.Location = new Point(14, 65);
+            shareModeLabel.Name = "shareModeLabel";
+            shareModeLabel.Size = new Size(114, 24);
+            shareModeLabel.TabIndex = 8;
+            shareModeLabel.Text = "Share mode";
+            // 
+            // latencyComboBox
+            // 
+            latencyComboBox.FormattingEnabled = true;
+            latencyComboBox.Location = new Point(128, 129);
+            latencyComboBox.Margin = new Padding(3, 4, 3, 4);
+            latencyComboBox.Name = "latencyComboBox";
+            latencyComboBox.Size = new Size(138, 28);
+            latencyComboBox.TabIndex = 7;
+            // 
+            // latencyLabel
+            // 
+            latencyLabel.Location = new Point(7, 133);
+            latencyLabel.Name = "latencyLabel";
+            latencyLabel.Size = new Size(114, 24);
+            latencyLabel.TabIndex = 6;
+            latencyLabel.Text = "Latency";
             // 
             // SettingForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(700, 338);
-            this.Controls.Add(this.okButton);
-            this.Controls.Add(this.filePathGroupBox);
-            this.Controls.Add(this.VcGroupBox);
-            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.Name = "SettingForm";
-            this.Text = "Setting";
-            this.VcGroupBox.ResumeLayout(false);
-            this.filePathGroupBox.ResumeLayout(false);
-            this.filePathGroupBox.PerformLayout();
-            this.ResumeLayout(false);
-
+            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(800, 451);
+            Controls.Add(SystemGroupBox);
+            Controls.Add(okButton);
+            Controls.Add(filePathGroupBox);
+            Controls.Add(VcGroupBox);
+            Name = "SettingForm";
+            Text = "Setting";
+            VcGroupBox.ResumeLayout(false);
+            filePathGroupBox.ResumeLayout(false);
+            filePathGroupBox.PerformLayout();
+            SystemGroupBox.ResumeLayout(false);
+            ResumeLayout(false);
         }
 
         #endregion
@@ -179,9 +296,20 @@
         private TextBox correspondenceFileTextBox;
         private Button correspondenceFileButton;
         private GroupBox VcGroupBox;
-        private Label DelayFramesLabel;
+        private Label delayFramesLabel;
         private ComboBox delayFramesComboBox;
         private GroupBox filePathGroupBox;
         private Button okButton;
+        private ComboBox disposeSpecsComboBox;
+        private Label disposeSpecsLabel;
+        private ComboBox overlapComboBox;
+        private Label overlapLabel;
+        private ComboBox gpuIdComboBox;
+        private Label gpuIdLabel;
+        private GroupBox SystemGroupBox;
+        private ComboBox shareModeComboBox;
+        private Label shareModeLabel;
+        private ComboBox latencyComboBox;
+        private Label latencyLabel;
     }
 }
