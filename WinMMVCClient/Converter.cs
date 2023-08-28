@@ -124,7 +124,7 @@ namespace WinMMVCClient
             WaveFormat? waveFormat = new WaveFormat(SampleRate, 1); // 24K mono
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
             speakerWaveProvider.DiscardOnBufferOverflow = true;
-            waveOut = new WasapiOut(speaker, AudioClientShareMode.Exclusive, true, Latency);
+            waveOut = new WasapiOut(speaker, AudioClientShareMode.Shared, true, Latency);
             waveOut.Init(speakerWaveProvider);
             waveIn = new WasapiCapture(mic, true, Latency);
             waveIn.WaveFormat = waveFormat;
