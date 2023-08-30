@@ -26,7 +26,7 @@ namespace WinMMVCClient
             this.confFilePath = confFilePath;
             configFileTextBox.Text = conf["path"]["json"].Value<String>();
             correspondenceFileTextBox.Text = conf["path"]["correspondence"].Value<String>();
-            modelFileTextBox.Text = conf["path"]["model"].Value<String>();  
+            modelFileTextBox.Text = conf["path"]["model"].Value<String>();
         }
 
         private void configFileButton_Click(object sender, EventArgs e)
@@ -68,6 +68,31 @@ namespace WinMMVCClient
         }
 
         private void shareModeComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void gpuIdComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void delayFramesComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void overlapComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void disposeSpecsComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void latencyComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
 
         }

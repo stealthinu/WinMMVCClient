@@ -35,21 +35,21 @@
             correspondenceFileTextBox = new TextBox();
             correspondenceFileButton = new Button();
             VcGroupBox = new GroupBox();
-            gpuIdComboBox = new ComboBox();
-            gpuIdLabel = new Label();
+            latencyComboBox = new ComboBox();
+            latencyLabel = new Label();
             disposeSpecsComboBox = new ComboBox();
             disposeSpecsLabel = new Label();
             overlapComboBox = new ComboBox();
             overlapLabel = new Label();
             delayFramesComboBox = new ComboBox();
             delayFramesLabel = new Label();
+            gpuIdComboBox = new ComboBox();
+            gpuIdLabel = new Label();
             filePathGroupBox = new GroupBox();
             okButton = new Button();
             SystemGroupBox = new GroupBox();
             shareModeComboBox = new ComboBox();
             shareModeLabel = new Label();
-            latencyComboBox = new ComboBox();
-            latencyLabel = new Label();
             VcGroupBox.SuspendLayout();
             filePathGroupBox.SuspendLayout();
             SystemGroupBox.SuspendLayout();
@@ -125,22 +125,23 @@
             VcGroupBox.TabStop = false;
             VcGroupBox.Text = "VC Settings";
             // 
-            // gpuIdComboBox
+            // latencyComboBox
             // 
-            gpuIdComboBox.FormattingEnabled = true;
-            gpuIdComboBox.Location = new Point(135, 21);
-            gpuIdComboBox.Margin = new Padding(3, 4, 3, 4);
-            gpuIdComboBox.Name = "gpuIdComboBox";
-            gpuIdComboBox.Size = new Size(138, 28);
-            gpuIdComboBox.TabIndex = 7;
+            latencyComboBox.FormattingEnabled = true;
+            latencyComboBox.Location = new Point(128, 129);
+            latencyComboBox.Margin = new Padding(3, 4, 3, 4);
+            latencyComboBox.Name = "latencyComboBox";
+            latencyComboBox.Size = new Size(138, 28);
+            latencyComboBox.TabIndex = 7;
+            latencyComboBox.SelectedIndexChanged += latencyComboBox_SelectedIndexChanged;
             // 
-            // gpuIdLabel
+            // latencyLabel
             // 
-            gpuIdLabel.Location = new Point(14, 25);
-            gpuIdLabel.Name = "gpuIdLabel";
-            gpuIdLabel.Size = new Size(114, 24);
-            gpuIdLabel.TabIndex = 6;
-            gpuIdLabel.Text = "GPU ID";
+            latencyLabel.Location = new Point(7, 133);
+            latencyLabel.Name = "latencyLabel";
+            latencyLabel.Size = new Size(114, 24);
+            latencyLabel.TabIndex = 6;
+            latencyLabel.Text = "Latency";
             // 
             // disposeSpecsComboBox
             // 
@@ -150,6 +151,7 @@
             disposeSpecsComboBox.Name = "disposeSpecsComboBox";
             disposeSpecsComboBox.Size = new Size(138, 28);
             disposeSpecsComboBox.TabIndex = 5;
+            disposeSpecsComboBox.SelectedIndexChanged += disposeSpecsComboBox_SelectedIndexChanged;
             // 
             // disposeSpecsLabel
             // 
@@ -167,6 +169,7 @@
             overlapComboBox.Name = "overlapComboBox";
             overlapComboBox.Size = new Size(138, 28);
             overlapComboBox.TabIndex = 3;
+            overlapComboBox.SelectedIndexChanged += overlapComboBox_SelectedIndexChanged;
             // 
             // overlapLabel
             // 
@@ -184,6 +187,7 @@
             delayFramesComboBox.Name = "delayFramesComboBox";
             delayFramesComboBox.Size = new Size(138, 28);
             delayFramesComboBox.TabIndex = 1;
+            delayFramesComboBox.SelectedIndexChanged += delayFramesComboBox_SelectedIndexChanged;
             // 
             // delayFramesLabel
             // 
@@ -192,6 +196,24 @@
             delayFramesLabel.Size = new Size(114, 24);
             delayFramesLabel.TabIndex = 0;
             delayFramesLabel.Text = "Delay frames";
+            // 
+            // gpuIdComboBox
+            // 
+            gpuIdComboBox.FormattingEnabled = true;
+            gpuIdComboBox.Location = new Point(135, 21);
+            gpuIdComboBox.Margin = new Padding(3, 4, 3, 4);
+            gpuIdComboBox.Name = "gpuIdComboBox";
+            gpuIdComboBox.Size = new Size(138, 28);
+            gpuIdComboBox.TabIndex = 7;
+            gpuIdComboBox.SelectedIndexChanged += gpuIdComboBox_SelectedIndexChanged;
+            // 
+            // gpuIdLabel
+            // 
+            gpuIdLabel.Location = new Point(14, 25);
+            gpuIdLabel.Name = "gpuIdLabel";
+            gpuIdLabel.Size = new Size(114, 24);
+            gpuIdLabel.TabIndex = 6;
+            gpuIdLabel.Text = "GPU ID";
             // 
             // filePathGroupBox
             // 
@@ -251,23 +273,6 @@
             shareModeLabel.Size = new Size(114, 24);
             shareModeLabel.TabIndex = 8;
             shareModeLabel.Text = "Share mode";
-            // 
-            // latencyComboBox
-            // 
-            latencyComboBox.FormattingEnabled = true;
-            latencyComboBox.Location = new Point(128, 129);
-            latencyComboBox.Margin = new Padding(3, 4, 3, 4);
-            latencyComboBox.Name = "latencyComboBox";
-            latencyComboBox.Size = new Size(138, 28);
-            latencyComboBox.TabIndex = 7;
-            // 
-            // latencyLabel
-            // 
-            latencyLabel.Location = new Point(7, 133);
-            latencyLabel.Name = "latencyLabel";
-            latencyLabel.Size = new Size(114, 24);
-            latencyLabel.TabIndex = 6;
-            latencyLabel.Text = "Latency";
             // 
             // SettingForm
             // 
