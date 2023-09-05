@@ -16,17 +16,17 @@ namespace WinMMVCClient
     public partial class SettingForm : Form
     {
         public JObject conf;
-        public String confFilePath;
+        public string confFilePath;
 
-        public SettingForm(JObject conf, String confFilePath)
+        public SettingForm(JObject conf, string confFilePath)
         {
             InitializeComponent();
             initializeComboBoxItems();
             this.conf = conf;
             this.confFilePath = confFilePath;
-            configFileTextBox.Text = conf["path"]["json"].Value<String>();
-            correspondenceFileTextBox.Text = conf["path"]["correspondence"].Value<String>();
-            modelFileTextBox.Text = conf["path"]["model"].Value<String>();
+            configFileTextBox.Text = conf["path"]["json"].Value<string>();
+            correspondenceFileTextBox.Text = conf["path"]["correspondence"].Value<string>();
+            modelFileTextBox.Text = conf["path"]["model"].Value<string>();
         }
 
         private void configFileButton_Click(object sender, EventArgs e)
@@ -69,39 +69,55 @@ namespace WinMMVCClient
 
         private void shareModeComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-
+            if (conf != null && conf["device"] != null)
+            {
+                conf["device"]["share_mode"] = shareModeComboBox.SelectedIndex;
+            }
         }
 
         private void gpuIdComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-
+            if (conf != null && conf["device"] != null) { 
+                conf["device"]["gpu"] = gpuIdComboBox.SelectedIndex;
+            }
         }
 
         private void delayFramesComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-
+            if (conf != null && conf["vc_conf"] != null) {
+                conf["vc_conf"]["delay_frames"] = delayFramesComboBox.SelectedIndex;
+            }
         }
 
         private void overlapComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-
+            if (conf != null && conf["vc_conf"] != null)
+            {
+                conf["vc_conf"]["overlap"] = overlapComboBox.SelectedIndex;
+            }
         }
 
         private void disposeSpecsComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-
+            if (conf != null && conf["vc_conf"] != null)
+            {
+                conf["vc_conf"]["dispose_specs"] = disposeSpecsComboBox.SelectedIndex;
+            }
         }
 
         private void latencyComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-
+            if (conf != null && conf["vc_conf"] != null)
+            { 
+                conf["vc_conf"]["latency"] = latencyComboBox.SelectedIndex;
+            }
         }
 
         private void initializeComboBoxItems()
         {
-            shareModeComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "Shared", Value = 0 });
-            shareModeComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "Exclusive", Value = 1 });
-            shareModeComboBox.SelectedIndex = 0;
+            shareModeComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "Shared", Value = 1 });
+            shareModeComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "Exclusive", Value = 0 });
+            shareModeComboBox.SelectedIndex = 1;
             gpuIdComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "0", Value = 0 });
             gpuIdComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "1", Value = 1 });
             gpuIdComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "2", Value = 2 });
@@ -133,7 +149,7 @@ namespace WinMMVCClient
         /*
         "delay_flames": 1664
         "overlap": 512
-        "dispose_conv1d_specs": 4
+        "dispose_specs": 4
         "source_id": 0
         "mic_volume_adjust": 0
         "pitch_adjust": 0

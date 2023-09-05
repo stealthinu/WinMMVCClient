@@ -91,7 +91,7 @@ namespace WinMMVCClient
             segmentSpecs = SegmentSize / HopSize; // 32 スペクトログラムの時間方向の数
             stftM = (int)Math.Log((double)WinSize, 2); // winSizeの2のべき数(512=2^9)
             prevStftWavSize = (((WinSize / HopSize) / 2) + 1) * HopSize; // スペクトログラム作成用に過去のwavを、WinSize半分ぶんのspecsに+1した長さだけ保持
-            DisposeConv1dSpecs = conf["vc_conf"]["dispose_conv1d_specs"].Value<int>();
+            DisposeConv1dSpecs = conf["vc_conf"]["dispose_specs"].Value<int>();
             disposeConv1dSize = DisposeConv1dSpecs * HopSize;
             BytesPerSample = 2;
             Latency = conf["vc_conf"]["latency"].Value<int>();
