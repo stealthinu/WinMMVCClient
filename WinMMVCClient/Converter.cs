@@ -84,7 +84,7 @@ namespace WinMMVCClient
             MicVolumeAdjustDB = conf["vc_conf"]["mic_volume_adjust"].Value<int>();
             MicVolumeAdjust = Math.Pow(10.0, MicVolumeAdjustDB / 20.0); // dB値を倍率に変換
             PitchAdjust = conf["vc_conf"]["pitch_adjust"].Value<int>();
-            SegmentSize = conf["vc_conf"]["delay_flames"].Value<int>();
+            SegmentSize = conf["vc_conf"]["delay_frames"].Value<int>();
             SpecChannels = WinSize / 2; // STFT結果の大きさをスペクトログラムに保存 winSizeが512だと有効なのは半分の256
             OverlapSize = conf["vc_conf"]["overlap"].Value<int>();
             truncationSpecs = WinSize / HopSize / 2; // 2 FFTするときに端で計算できないサイズ
@@ -124,6 +124,14 @@ namespace WinMMVCClient
             WaveFormat? waveFormat = new WaveFormat(SampleRate, 1); // 24K mono
             speakerWaveProvider = new BufferedWaveProvider(waveFormat);
             speakerWaveProvider.DiscardOnBufferOverflow = true;
+            if (conf["device"]["share_mode"].Value<string>() == "Shared")
+            {
+                waveOut = new WasapiOut(speaker, AudioClientShareMode.Shared, true, Latency);
+            }
+            else
+            {
+                waveOut = new WasapiOut(speaker, AudioClientShareMode.Exclusive, true, Latency);
+            }
             waveOut = new WasapiOut(speaker, AudioClientShareMode.Shared, true, Latency);
             waveOut.Init(speakerWaveProvider);
             waveIn = new WasapiCapture(mic, true, Latency);

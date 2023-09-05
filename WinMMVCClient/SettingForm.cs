@@ -1,4 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
+using System;
+using System.Management;
 
 namespace WinMMVCClient
 {
@@ -9,7 +11,7 @@ namespace WinMMVCClient
 
         public override string ToString()
         {
-            return DisplayName;
+            return Value.ToString();
         }
     }
 
@@ -17,11 +19,12 @@ namespace WinMMVCClient
     {
         public JObject conf;
         public string confFilePath;
+        private bool isInitialized = false;
 
         public SettingForm(JObject conf, string confFilePath)
         {
             InitializeComponent();
-            initializeComboBoxItems();
+            initializeComboBoxItems(conf);
             this.conf = conf;
             this.confFilePath = confFilePath;
             configFileTextBox.Text = conf["path"]["json"].Value<string>();
@@ -69,85 +72,116 @@ namespace WinMMVCClient
 
         private void shareModeComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (conf != null && conf["device"] != null)
-            {
-                conf["device"]["share_mode"] = shareModeComboBox.SelectedIndex;
-            }
+            if (!isInitialized) return;
+            conf["device"]["share_mode"] = shareModeComboBox.SelectedItem.ToString();
         }
 
         private void gpuIdComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (conf != null && conf["device"] != null) { 
-                conf["device"]["gpu"] = gpuIdComboBox.SelectedIndex;
-            }
+            if (!isInitialized) return;
+            conf["device"]["gpu_id"] = gpuIdComboBox.SelectedItem.ToString();
         }
 
         private void delayFramesComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (conf != null && conf["vc_conf"] != null) {
-                conf["vc_conf"]["delay_frames"] = delayFramesComboBox.SelectedIndex;
-            }
+            if (!isInitialized) return;
+            conf["vc_conf"]["delay_frames"] = delayFramesComboBox.SelectedItem.ToString();
         }
 
         private void overlapComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (conf != null && conf["vc_conf"] != null)
-            {
-                conf["vc_conf"]["overlap"] = overlapComboBox.SelectedIndex;
-            }
+            if (!isInitialized) return;
+            conf["vc_conf"]["overlap"] = overlapComboBox.SelectedItem.ToString();
         }
 
         private void disposeSpecsComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (conf != null && conf["vc_conf"] != null)
-            {
-                conf["vc_conf"]["dispose_specs"] = disposeSpecsComboBox.SelectedIndex;
-            }
+            if (!isInitialized) return;
+            conf["vc_conf"]["dispose_specs"] = disposeSpecsComboBox.SelectedItem.ToString();
         }
 
         private void latencyComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (conf != null && conf["vc_conf"] != null)
-            { 
-                conf["vc_conf"]["latency"] = latencyComboBox.SelectedIndex;
-            }
+            if (!isInitialized) return;
+            conf["vc_conf"]["latency"] = latencyComboBox.SelectedItem.ToString();
         }
 
-        private void initializeComboBoxItems()
+        private void initializeComboBoxItems(JObject conf)
         {
-            shareModeComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "Shared", Value = 1 });
-            shareModeComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "Exclusive", Value = 0 });
-            shareModeComboBox.SelectedIndex = 1;
-            gpuIdComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "0", Value = 0 });
-            gpuIdComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "1", Value = 1 });
-            gpuIdComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "2", Value = 2 });
-            gpuIdComboBox.SelectedIndex = 0;
+            shareModeComboBox.Items.Add(new ComboBoxItem<string>() { DisplayName = "Shared", Value = "Shared" });
+            shareModeComboBox.Items.Add(new ComboBoxItem<string>() { DisplayName = "Exclusive", Value = "Exclusive" });
+            SetSelectedString(shareModeComboBox, conf["device"]["share_mode"].Value<string>());
+
+            var gpuCount = getGpuCount();
+            for (int i = 0; i < gpuCount; i++)
+            {
+                gpuIdComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = i.ToString(), Value = i });
+            }
+            SetSelectedValue(gpuIdComboBox, conf["device"]["gpu_id"].Value<int>());
+
             delayFramesComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "1024", Value = 1024 });
             delayFramesComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "1664", Value = 1664 });
             delayFramesComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "2048", Value = 2048 });
             delayFramesComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "4096", Value = 4096 });
             delayFramesComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "8192", Value = 8192 });
             delayFramesComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "16384", Value = 16384 });
-            delayFramesComboBox.SelectedIndex = 1;
+            SetSelectedValue(delayFramesComboBox, conf["vc_conf"]["delay_frames"].Value<int>());
+
             overlapComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "512", Value = 512 });
             overlapComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "768", Value = 768 });
             overlapComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "1024", Value = 1024 });
-            overlapComboBox.SelectedIndex = 0;
+            SetSelectedValue(overlapComboBox, conf["vc_conf"]["overlap"].Value<int>());
+
             disposeSpecsComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "0", Value = 0 });
             disposeSpecsComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "2", Value = 2 });
             disposeSpecsComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "4", Value = 4 });
             disposeSpecsComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "8", Value = 8 });
-            disposeSpecsComboBox.SelectedIndex = 2;
+            SetSelectedValue(disposeSpecsComboBox, conf["vc_conf"]["dispose_specs"].Value<int>());
+
             latencyComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "10", Value = 10 });
             latencyComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "20", Value = 20 });
             latencyComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "50", Value = 50 });
             latencyComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "100", Value = 100 });
             latencyComboBox.Items.Add(new ComboBoxItem<int>() { DisplayName = "200", Value = 200 });
-            latencyComboBox.SelectedIndex = 2;
+            SetSelectedValue(latencyComboBox, conf["vc_conf"]["latency"].Value<int>());
+
+            isInitialized = true;
+        }
+
+        private void SetSelectedValue(ComboBox comboBox, int value)
+        {
+            for (int i = 0; i < comboBox.Items.Count; i++)
+            {
+                ComboBoxItem<int> item = comboBox.Items[i] as ComboBoxItem<int>;
+                if (item != null && item.Value == value)
+                {
+                    comboBox.SelectedIndex = i;
+                    break;
+                }
+            }
+        }
+
+        private void SetSelectedString(ComboBox comboBox, string value)
+        {
+            for (int i = 0; i < comboBox.Items.Count; i++)
+            {
+                ComboBoxItem<string> item = comboBox.Items[i] as ComboBoxItem<string>;
+                if (item != null && item.Value == value)
+                {
+                    comboBox.SelectedIndex = i;
+                    break;
+                }
+            }
+        }
+
+        private static int getGpuCount()
+        {
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController");
+            return searcher.Get().Count;
         }
 
         /*
-        "delay_flames": 1664
+        "delay_frames": 1664
         "overlap": 512
         "dispose_specs": 4
         "source_id": 0

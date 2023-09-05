@@ -24,6 +24,7 @@
     <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.15.1" />
     <PackageReference Include="Microsoft.ML.OnnxTransformer" Version="2.0.0" />
     <PackageReference Include="NAudio" Version="2.1.0" />
+    <PackageReference Include="System.Management" Version="7.0.2" />
   </ItemGroup>
 
   <ItemGroup>
